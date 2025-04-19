@@ -1,0 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Styles */
+@layer base {
+  html {
+    @apply text-neutral-900 scroll-smooth;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-neutral-50 text-neutral-900;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+  
+  h1 {
+    @apply text-3xl md:text-4xl;
+  }
+  
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+  
+  h4 {
+    @apply text-lg md:text-xl;
+  }
+  
+  h5 {
+    @apply text-base md:text-lg;
+  }
+  
+  h6 {
+    @apply text-sm md:text-base;
+  }
+
+  /* Smooth scrolling for anchor links */
+  a[href^="#"] {
+    @apply scroll-smooth;
+  }
+}
+
+/* Component Classes */
+@layer components {
+  /* Button Styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-button font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300;
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-secondary-600 text-white hover:bg-secondary-700;
+  }
+  
+  .btn-accent {
+    @apply btn bg-accent-500 text-white hover:bg-accent-600;
+  }
+  
+  .btn-outline {
+    @apply btn bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50;
+  }
+  
+  .btn-success {
+    @apply btn bg-success-600 text-white hover:bg-success-700;
+  }
+  
+  .btn-error {
+    @apply btn bg-error-600 text-white hover:bg-error-700;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+
+  /* Modern Card Styles */
+  .card {
+    @apply bg-white rounded-lg shadow-card overflow-hidden transition-all duration-300;
+  }
+  
+  .card-hoverable {
+    @apply card hover:shadow-lg transform hover:-translate-y-1;
+  }
+
+  /* Input Styles with enhanced focus states */
+  .input {
+    @apply block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors;
+  }
+  
+  .select {
+    @apply block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+  }
+  
+  .label {
+    @apply block text-sm font-medium text-neutral-700 mb-1;
+  }
+  
+  .form-group {
+    @apply mb-4;
+  }
+
+  /* Table Styles */
+  .table-container {
+    @apply overflow-x-auto rounded-lg shadow-sm border border-neutral-200;
+  }
+  
+  .table {
+    @apply min-w-full divide-y divide-neutral-200;
+  }
+  
+  .table-header {
+    @apply bg-neutral-50;
+  }
+  
+  .table-row {
+    @apply bg-white border-b border-neutral-100 hover:bg-neutral-50 transition-colors;
+  }
+  
+  .table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-neutral-500;
+  }
+  
+  .table-cell-header {
+    @apply px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider;
+  }
+
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply badge bg-success-100 text-success-800;
+  }
+  
+  .badge-error {
+    @apply badge bg-error-100 text-error-800;
+  }
+  
+  .badge-warning {
+    @apply badge bg-accent-100 text-accent-800;
+  }
+  
+  .badge-info {
+    @apply badge bg-primary-100 text-primary-800;
+  }
+
+  /* Product Card Styles - Modern E-commerce */
+  .product-card {
+    @apply bg-white rounded-lg overflow-hidden flex flex-col h-full shadow-sm hover:shadow-lg transition-all duration-200;
+  }
+
+  .product-card-image {
+    @apply relative h-48 overflow-hidden;
+  }
+
+  .product-card-body {
+    @apply p-4 flex-grow flex flex-col;
+  }
+
+  .product-card-title {
+    @apply text-sm font-medium text-neutral-800 mb-2 line-clamp-2 hover:text-primary-600 transition-colors;
+  }
+
+  .product-card-price {
+    @apply text-base font-bold text-primary-600;
+  }
+
+  .product-card-old-price {
+    @apply text-xs text-neutral-500 line-through;
+  }
+
+  .product-card-discount {
+    @apply text-xs bg-accent-500 text-white px-1 py-0.5 rounded;
+  }
+
+  .product-card-rating {
+    @apply flex items-center mt-2;
+  }
+
+  .product-card-action {
+    @apply mt-auto pt-3 flex items-center justify-center;
+  }
+
+  /* Navigation styles */
+  .nav-link {
+    @apply text-neutral-700 hover:text-primary-600 transition-colors relative;
+  }
+
+  .nav-link-active {
+    @apply text-primary-600 font-medium;
+  }
+
+  .nav-link-active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-primary-600 rounded-full;
+  }
+
+  .mega-menu {
+    @apply hidden absolute top-full left-0 w-full bg-white shadow-lg z-50 p-4 border-t border-neutral-200 transform transition-all duration-300 opacity-0 translate-y-1 pointer-events-none;
+  }
+
+  .mega-menu-active {
+    @apply block opacity-100 translate-y-0 pointer-events-auto;
+  }
+}
+
+/* Utility Classes */
+@layer utilities {
+  .transition-300 {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+  
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  /* Modern scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.neutral.300') theme('colors.neutral.100');
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-neutral-100 rounded-full;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
+  }
+
+  /* Text effects */
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  /* Grid layouts */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+
+  @screen md {
+    .product-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+  }
+
+  @screen lg {
+    .product-grid {
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s infinite;
+}
