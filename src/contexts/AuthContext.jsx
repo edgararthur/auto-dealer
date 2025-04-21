@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import supabase from '../../../shared/supabase/supabaseClient';
-import { logError } from '../../../shared/utils/errorLogger';
+import supabase from '../../shared/supabase/supabaseClient';
+import { logError } from '../../shared/utils/errorLogger';
+
+// Add console logging to check if imports are working
+console.log('Buyer AuthContext: Imports loaded', { 
+  hasSupabase: !!supabase, 
+  hasSupabaseAuth: !!(supabase && supabase.auth),
+  logError: !!logError
+});
 
 // Create context
 const AuthContext = createContext(null);
@@ -17,10 +24,24 @@ export function AuthProvider({ children }) {
     // Get current session and set up auth state
     const initializeAuth = async () => {
       try {
+        console.log('Buyer AuthContext: Starting initialization');
         setLoading(true);
         
         // Get current session
+        if (!supabase || !supabase.auth) {
+          console.error('Buyer AuthContext: Supabase or supabase.auth is undefined');
+          setError('Authentication service unavailable');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Buyer AuthContext: Getting session');
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('Buyer AuthContext: Session result', { 
+          hasSession: !!currentSession, 
+          error: sessionError ? sessionError.message : null 
+        });
         
         if (sessionError) {
           throw sessionError;
@@ -30,11 +51,17 @@ export function AuthProvider({ children }) {
         
         // If we have a session, get user profile
         if (currentSession) {
+          console.log('Buyer AuthContext: Getting user profile');
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', currentSession.user.id)
             .single();
+            
+          console.log('Buyer AuthContext: Profile result', { 
+            hasProfile: !!profile, 
+            error: profileError ? profileError.message : null 
+          });
             
           if (profileError) {
             throw profileError;
@@ -44,11 +71,16 @@ export function AuthProvider({ children }) {
             ...currentSession.user,
             profile
           });
+          console.log('Buyer AuthContext: User set successfully');
+        } else {
+          console.log('Buyer AuthContext: No session found, user not authenticated');
         }
       } catch (err) {
+        console.error('Buyer AuthContext: Initialization error', err.message, err.stack);
         logError('AuthContext.initializeAuth', err);
-        setError(err.message);
+        setError(err.message || 'Failed to initialize authentication');
       } finally {
+        console.log('Buyer AuthContext: Finished initialization, setting loading to false');
         setLoading(false);
       }
     };
@@ -56,28 +88,44 @@ export function AuthProvider({ children }) {
     initializeAuth();
 
     // Set up auth state change subscription
+    if (!supabase || !supabase.auth) {
+      console.error('Buyer AuthContext: Supabase or supabase.auth is undefined when setting up subscription');
+      return () => {}; // Return empty cleanup function
+    }
+
+    console.log('Buyer AuthContext: Setting up auth state change subscription');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('Buyer AuthContext: Auth state change', { event, hasSession: !!newSession });
       setSession(newSession);
       
       if (event === 'SIGNED_IN' && newSession) {
         // Get user profile on sign in
-        const { data: profile } = await supabase
+        console.log('Buyer AuthContext: Getting profile after sign in');
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', newSession.user.id)
           .single();
+        
+        if (profileError) {
+          console.error('Buyer AuthContext: Error getting profile after sign in', profileError);
+          return;
+        }
           
         setUser({
           ...newSession.user,
           profile
         });
+        console.log('Buyer AuthContext: User set after sign in');
       } else if (event === 'SIGNED_OUT') {
+        console.log('Buyer AuthContext: User signed out');
         setUser(null);
       }
     });
 
     // Clean up subscription
     return () => {
+      console.log('Buyer AuthContext: Cleanup subscription');
       subscription?.unsubscribe();
     };
   }, []);

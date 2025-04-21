@@ -27,7 +27,7 @@ import {
   EmptyState
 } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
-import supabase from '../../../../shared/supabase/supabaseClient';
+import { supabase } from 'autoplus-shared';
 
 const ProductDetail = () => {
   const { productId } = useParams();

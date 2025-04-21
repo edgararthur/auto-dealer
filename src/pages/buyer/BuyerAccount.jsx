@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiUser, FiShoppingBag, FiMapPin, FiCreditCard, FiLock, FiEdit, FiPlus, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
-import supabase from '../../../../shared/supabase/supabaseClient';
+import { supabase } from 'autoplus-shared';
 
 const BuyerAccount = () => {
   const [activeTab, setActiveTab] = useState('profile');

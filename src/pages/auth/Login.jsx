@@ -1,22 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
+
+// For testing, let's add these default values to make it easier to test login
+const DEFAULT_TEST_EMAIL = 'test@example.com';
+const DEFAULT_TEST_PASSWORD = 'password123';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEFAULT_TEST_EMAIL);
+  const [password, setPassword] = useState(DEFAULT_TEST_PASSWORD);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, error: authError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   // Get the return URL from query params
   const searchParams = new URLSearchParams(location.search);
   const returnTo = searchParams.get('returnTo') || '/';
+
+  // Show any global auth errors
+  useEffect(() => {
+    if (authError) {
+      setError(`Authentication error: ${authError}`);
+    }
+  }, [authError]);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,19 +40,27 @@ const Login = () => {
     
     try {
       setError('');
+      setStatusMessage('Connecting to authentication service...');
       setIsLoading(true);
       
+      console.log('Login: Starting login attempt...');
       const result = await login(email, password);
+      console.log('Login: Login result', { success: result.success, error: result.error });
       
       if (result.success) {
+        setStatusMessage('Login successful! Redirecting...');
+        console.log('Login: Successful, navigating to', returnTo);
         // Navigate to the returnTo URL or default to the shop page
         navigate(returnTo);
       } else {
+        console.log('Login: Failed with error', result.error);
         setError(result.error || 'Failed to log in');
+        setStatusMessage('');
       }
     } catch (err) {
+      console.error('Login: Exception occurred', err);
       setError('Failed to log in. Please try again.');
-      console.error(err);
+      setStatusMessage('');
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +79,15 @@ const Login = () => {
       </div>
       
       {error && (
-        <div className="mb-4 p-3 bg-error-50 text-error-700 rounded-md border border-error-200">
-          {error}
+        <div className="mb-4 p-3 bg-error-50 text-error-700 rounded-md border border-error-200 flex items-start">
+          <FiAlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          <div>{error}</div>
+        </div>
+      )}
+
+      {statusMessage && (
+        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-md border border-blue-200">
+          {statusMessage}
         </div>
       )}
       
@@ -138,7 +165,15 @@ const Login = () => {
               isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500'
             }`}
           >
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Signing in...
+              </span>
+            ) : 'Sign in'}
           </button>
         </div>
       </form>

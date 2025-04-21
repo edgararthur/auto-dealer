@@ -4,4 +4,6 @@ export { default as PaymentService } from './services/paymentService.js';
 export { default as ProductService } from './services/productService.js';
 export { default as OrderService } from './services/orderService.js';
 export { default as CartService } from './services/cartService.js';
-export { default as UserService } from './services/userService.js'; 
+export { default as UserService } from './services/userService.js';
+export { default as DealerService } from './services/dealerService.js';
+export { default as WarrantyService } from './services/warrantyService.js'; 

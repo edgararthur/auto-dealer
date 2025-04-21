@@ -7,6 +7,10 @@ export default defineConfig(({ mode }) => {
   // Load env file from project root
   process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '..'), '') };
   
+  // Calculate path to shared folder for debugging
+  const sharedPath = path.resolve(__dirname, './shared');
+  console.log('Buyer vite.config.js: Resolved shared path:', sharedPath);
+  
   return {
     plugins: [react()],
     server: {
@@ -15,7 +19,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        'autoplus-shared': path.resolve(__dirname, './shared')
+        'autoplus-shared': sharedPath
       },
     },
   };

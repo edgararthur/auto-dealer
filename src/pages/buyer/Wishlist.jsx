@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiTrash2, FiShoppingCart, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
-import supabase from '../../../../shared/supabase/supabaseClient';
+import { supabase } from 'autoplus-shared';
 import EmptyState from '../../components/common/EmptyState';
 
 const Wishlist = () => {

@@ -57,19 +57,55 @@ const LandingLayout = ({ children }) => (
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, error } = useAuth();
+  
+  console.log('Buyer ProtectedRoute:', { loading, isAuthenticated, hasError: !!error, errorMsg: error });
   
   // Show loading state while checking authentication
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="text-center mb-4">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+          <div className="text-neutral-600 font-medium">Loading authentication...</div>
+        </div>
+        <div className="text-xs text-gray-500 mt-2">This may take a few moments</div>
+      </div>
+    );
+  }
+  
+  // Show error if authentication failed
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="text-error-600 mb-4 text-xl">Authentication Error</div>
+        <div className="text-neutral-600 max-w-md text-center mb-6">{error}</div>
+        <div className="flex space-x-4">
+          <button 
+            className="px-4 py-2 bg-neutral-200 text-neutral-700 rounded"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+          <button 
+            className="px-4 py-2 bg-primary-600 text-white rounded"
+            onClick={() => window.location.href = '/auth/login'}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
   }
   
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log("Buyer ProtectedRoute: Not authenticated, redirecting to login");
     return <Navigate to="/auth/login" />;
   }
   
   // Render children if authenticated
+  console.log("Buyer ProtectedRoute: Authentication successful, rendering content");
   return children;
 };
 
