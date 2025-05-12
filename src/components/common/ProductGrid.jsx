@@ -11,6 +11,8 @@ import { FiAlertCircle } from 'react-icons/fi';
  * @param {Function} onAddToCart - Function to handle adding to cart
  * @param {Function} onAddToWishlist - Function to handle adding to wishlist
  * @param {Function} onQuickView - Function to handle quick view modal
+ * @param {Function} onAddToComparison - Function to handle adding to comparison
+ * @param {Function} isInComparison - Function that determines if a product is in comparison
  * @param {Boolean} showQuickActions - Whether to show quick action buttons on cards
  * @param {String} emptyMessage - Message to display when no products are available
  * @param {Number} columns - Number of columns on large screens
@@ -23,6 +25,8 @@ const ProductGrid = ({
   onAddToCart,
   onAddToWishlist,
   onQuickView,
+  onAddToComparison,
+  isInComparison,
   showQuickActions = true,
   emptyMessage = "No products found",
   columns = 4,
@@ -103,6 +107,8 @@ const ProductGrid = ({
           onAddToCart={onAddToCart}
           onAddToWishlist={onAddToWishlist}
           onQuickView={onQuickView}
+          onAddToComparison={onAddToComparison}
+          isInComparison={isInComparison ? isInComparison(product.id) : false}
           showQuickActions={showQuickActions}
           compact={compact}
           tags={getProductTags(product)}
@@ -118,6 +124,8 @@ ProductGrid.propTypes = {
   onAddToCart: PropTypes.func,
   onAddToWishlist: PropTypes.func,
   onQuickView: PropTypes.func,
+  onAddToComparison: PropTypes.func,
+  isInComparison: PropTypes.func,
   showQuickActions: PropTypes.bool,
   emptyMessage: PropTypes.string,
   columns: PropTypes.number,
@@ -125,4 +133,4 @@ ProductGrid.propTypes = {
   getProductTags: PropTypes.func
 };
 
-export default ProductGrid; 
+export default React.memo(ProductGrid); 

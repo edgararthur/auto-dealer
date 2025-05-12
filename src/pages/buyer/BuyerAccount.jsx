@@ -147,7 +147,7 @@ const BuyerAccount = () => {
   useEffect(() => {
     fetchUserData();
   }, [user?.id]);
-  
+
   // Add tab change handler to set loading states
   useEffect(() => {
     const fetchTabData = async () => {
@@ -199,28 +199,28 @@ const BuyerAccount = () => {
     }
     
     try {
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          created_at,
-          total_amount,
-          order_status,
-          order_items(id)
-        `)
-        .eq('buyer_id', user.id)
-        .order('created_at', { ascending: false });
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            created_at,
+            total_amount,
+            order_status,
+            order_items(id)
+          `)
+          .eq('buyer_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (orderError) throw orderError;
         
-      if (orderError) throw orderError;
-      
-      if (orderData) {
-        setOrders(orderData.map(order => ({
-          id: order.id,
-          date: order.created_at,
-          total: order.total_amount || 0,
-          status: order.order_status?.toLowerCase() || 'processing',
-          items: order.order_items?.length || 0
-        })));
+        if (orderData) {
+          setOrders(orderData.map(order => ({
+            id: order.id,
+            date: order.created_at,
+            total: order.total_amount || 0,
+            status: order.order_status?.toLowerCase() || 'processing',
+            items: order.order_items?.length || 0
+          })));
       } else {
         // Ensure we set empty array if no data
         setOrders([]);
@@ -240,23 +240,23 @@ const BuyerAccount = () => {
     }
     
     try {
-      const { data: addressData, error: addressError } = await supabase
-        .from('user_addresses')
-        .select('*')
-        .eq('user_id', user.id);
+        const { data: addressData, error: addressError } = await supabase
+          .from('user_addresses')
+          .select('*')
+          .eq('user_id', user.id);
+          
+        if (addressError) throw addressError;
         
-      if (addressError) throw addressError;
-      
-      if (addressData && addressData.length > 0) {
-        setAddresses(addressData.map(addr => ({
-          id: addr.id,
-          type: addr.address_type || 'Home',
-          default: addr.is_default || false,
-          address: addr.street_address || '',
-          city: addr.city || '',
-          state: addr.region || '',
-          zip: addr.postal_code || ''
-        })));
+        if (addressData && addressData.length > 0) {
+          setAddresses(addressData.map(addr => ({
+            id: addr.id,
+            type: addr.address_type || 'Home',
+            default: addr.is_default || false,
+            address: addr.street_address || '',
+            city: addr.city || '',
+            state: addr.region || '',
+            zip: addr.postal_code || ''
+          })));
       } else {
         // Ensure we set empty array if no data
         setAddresses([]);
@@ -276,22 +276,22 @@ const BuyerAccount = () => {
     }
     
     try {
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payment_methods')
-        .select('*')
-        .eq('user_id', user.id);
+        const { data: paymentData, error: paymentError } = await supabase
+          .from('payment_methods')
+          .select('*')
+          .eq('user_id', user.id);
+          
+        if (paymentError) throw paymentError;
         
-      if (paymentError) throw paymentError;
-      
-      if (paymentData && paymentData.length > 0) {
-        setPaymentMethods(paymentData.map(payment => ({
-          id: payment.id,
-          type: payment.payment_type || 'Mobile Money',
-          last4: payment.mobile_number?.slice(-4) || '****',
-          brand: payment.provider || 'MoMo',
-          expiry: 'N/A',
-          default: payment.is_default || false
-        })));
+        if (paymentData && paymentData.length > 0) {
+          setPaymentMethods(paymentData.map(payment => ({
+            id: payment.id,
+            type: payment.payment_type || 'Mobile Money',
+            last4: payment.mobile_number?.slice(-4) || '****',
+            brand: payment.provider || 'MoMo',
+            expiry: 'N/A',
+            default: payment.is_default || false
+          })));
       } else {
         // Ensure we set empty array if no data
         setPaymentMethods([]);
@@ -691,12 +691,12 @@ const BuyerAccount = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
           <div className={`p-4 rounded-lg shadow-sm border ${
             notification.type === 'error' ? 'bg-error-50 text-error-700 border-error-200' : 'bg-success-50 text-success-700 border-success-200'
-          }`}>
-            {notification.message}
+        }`}>
+          {notification.message}
           </div>
         </div>
       )}
-
+      
       {/* Account Dashboard Summary */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div className="bg-white rounded-xl shadow-luxury border border-neutral-100 overflow-hidden">
@@ -775,8 +775,8 @@ const BuyerAccount = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Left sidebar with tabs */}
-          <div className="md:col-span-1">
+        {/* Left sidebar with tabs */}
+        <div className="md:col-span-1">
             <div className="bg-white rounded-xl shadow-luxury overflow-hidden border border-neutral-100">
               <div className="p-6 border-b border-neutral-100 bg-gradient-to-r from-primary-50 to-neutral-50">
                 <div className="flex items-center space-x-4">
@@ -791,8 +791,8 @@ const BuyerAccount = () => {
               </div>
               
               <nav className="py-2">
-                <button
-                  onClick={() => setActiveTab('profile')}
+              <button
+                onClick={() => setActiveTab('profile')}
                   className={`flex items-center justify-between w-full px-6 py-3.5 text-sm font-medium transition-colors duration-200 ${
                     activeTab === 'profile' 
                       ? 'bg-primary-50 text-primary-700 border-r-4 border-primary-600' 
@@ -800,14 +800,14 @@ const BuyerAccount = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <FiUser className="mr-3 h-5 w-5" />
+                <FiUser className="mr-3 h-5 w-5" />
                     <span>Profile</span>
                   </div>
                   {activeTab === 'profile' && <FiChevronRight size={16} />}
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('orders')}
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('orders')}
                   className={`flex items-center justify-between w-full px-6 py-3.5 text-sm font-medium transition-colors duration-200 ${
                     activeTab === 'orders' 
                       ? 'bg-primary-50 text-primary-700 border-r-4 border-primary-600' 
@@ -815,14 +815,14 @@ const BuyerAccount = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <FiShoppingBag className="mr-3 h-5 w-5" />
+                <FiShoppingBag className="mr-3 h-5 w-5" />
                     <span>Orders</span>
                   </div>
                   {activeTab === 'orders' && <FiChevronRight size={16} />}
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('addresses')}
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('addresses')}
                   className={`flex items-center justify-between w-full px-6 py-3.5 text-sm font-medium transition-colors duration-200 ${
                     activeTab === 'addresses' 
                       ? 'bg-primary-50 text-primary-700 border-r-4 border-primary-600' 
@@ -830,14 +830,14 @@ const BuyerAccount = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <FiMapPin className="mr-3 h-5 w-5" />
+                <FiMapPin className="mr-3 h-5 w-5" />
                     <span>Addresses</span>
                   </div>
                   {activeTab === 'addresses' && <FiChevronRight size={16} />}
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('payment')}
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('payment')}
                   className={`flex items-center justify-between w-full px-6 py-3.5 text-sm font-medium transition-colors duration-200 ${
                     activeTab === 'payment' 
                       ? 'bg-primary-50 text-primary-700 border-r-4 border-primary-600' 
@@ -845,14 +845,14 @@ const BuyerAccount = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <FiCreditCard className="mr-3 h-5 w-5" />
+                <FiCreditCard className="mr-3 h-5 w-5" />
                     <span>Payment Methods</span>
                   </div>
                   {activeTab === 'payment' && <FiChevronRight size={16} />}
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('security')}
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('security')}
                   className={`flex items-center justify-between w-full px-6 py-3.5 text-sm font-medium transition-colors duration-200 ${
                     activeTab === 'security' 
                       ? 'bg-primary-50 text-primary-700 border-r-4 border-primary-600' 
@@ -860,17 +860,17 @@ const BuyerAccount = () => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <FiLock className="mr-3 h-5 w-5" />
+                <FiLock className="mr-3 h-5 w-5" />
                     <span>Security</span>
                   </div>
                   {activeTab === 'security' && <FiChevronRight size={16} />}
-                </button>
-              </nav>
-            </div>
+              </button>
+            </nav>
           </div>
-          
-          {/* Main content area */}
-          <div className="md:col-span-3">
+        </div>
+        
+        {/* Main content area */}
+        <div className="md:col-span-3">
             {/* Only show the main loading spinner on initial page load, not for tab changes */}
             {loading ? (
               <div className="bg-white rounded-xl shadow-luxury p-12 border border-neutral-100 flex justify-center">
@@ -927,42 +927,42 @@ const BuyerAccount = () => {
                     <div className="bg-white rounded-xl shadow-luxury border border-neutral-100 overflow-hidden">
                       <div className="flex justify-between items-center p-6 border-b border-neutral-100 bg-gradient-to-r from-primary-50 to-neutral-50">
                         <h2 className="text-xl font-bold text-neutral-900 font-display">Profile Information</h2>
-                        {!editMode ? (
-                          <button 
-                            onClick={handleProfileEdit}
+                      {!editMode ? (
+                        <button 
+                          onClick={handleProfileEdit}
                             className="flex items-center px-4 py-2 text-sm font-medium text-primary-600 bg-white rounded-lg border border-primary-200 hover:bg-primary-50 shadow-sm transition-colors duration-200"
-                          >
+                        >
                             <FiEdit className="mr-2 h-4 w-4" /> Edit Profile
-                          </button>
-                        ) : (
-                          <div className="flex space-x-3">
-                            <button 
-                              onClick={handleProfileCancel}
+                        </button>
+                      ) : (
+                        <div className="flex space-x-3">
+                          <button 
+                            onClick={handleProfileCancel}
                               className="flex items-center px-4 py-2 text-sm font-medium text-neutral-600 bg-white rounded-lg border border-neutral-200 hover:bg-neutral-50 shadow-sm transition-colors duration-200"
-                              disabled={updating}
-                            >
+                            disabled={updating}
+                          >
                               <FiX className="mr-2 h-4 w-4" /> Cancel
-                            </button>
-                            <button 
-                              onClick={handleProfileSave}
+                          </button>
+                          <button 
+                            onClick={handleProfileSave}
                               className="flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 shadow-sm transition-colors duration-200"
-                              disabled={updating}
-                            >
-                              {updating ? (
-                                <>
+                            disabled={updating}
+                          >
+                            {updating ? (
+                              <>
                                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
-                                  Saving...
-                                </>
-                              ) : (
-                                <>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
                                   <FiCheck className="mr-2 h-4 w-4" /> Save Changes
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
                       <div className="p-6">
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                           {/* Profile picture section */}
@@ -1012,49 +1012,49 @@ const BuyerAccount = () => {
                           {/* Profile details section */}
                           <div className="lg:col-span-3 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div>
+                      <div>
                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Full Name</label>
-                                {!editMode ? (
+                        {!editMode ? (
                                   <p className="text-neutral-800 bg-neutral-50 p-3 rounded-lg border border-neutral-200">{profile.name}</p>
-                                ) : (
-                                  <input
-                                    type="text"
-                                    name="name"
-                                    value={editableProfile.name}
-                                    onChange={handleInputChange}
+                        ) : (
+                          <input
+                            type="text"
+                            name="name"
+                            value={editableProfile.name}
+                            onChange={handleInputChange}
                                     className="w-full px-4 py-3 rounded-lg border border-neutral-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
                                     placeholder="Enter your full name"
-                                  />
-                                )}
-                              </div>
-                              
-                              <div>
+                          />
+                        )}
+                      </div>
+                      
+                      <div>
                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Email Address</label>
                                 <p className="text-neutral-800 bg-neutral-50 p-3 rounded-lg border border-neutral-200 flex items-center">
                                   {profile.email}
                                   <span className="ml-2 text-xs bg-success-100 text-success-700 px-2 py-0.5 rounded-full">Verified</span>
                                 </p>
-                              </div>
-                              
-                              <div>
+                      </div>
+                      
+                      <div>
                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Phone Number</label>
-                                {!editMode ? (
+                        {!editMode ? (
                                   <p className="text-neutral-800 bg-neutral-50 p-3 rounded-lg border border-neutral-200">
                                     {profile.phone || 'Not provided'}
                                   </p>
-                                ) : (
-                                  <input
-                                    type="tel"
-                                    name="phone"
-                                    value={editableProfile.phone}
-                                    onChange={handleInputChange}
+                        ) : (
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={editableProfile.phone}
+                            onChange={handleInputChange}
                                     className="w-full px-4 py-3 rounded-lg border border-neutral-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
                                     placeholder="Enter your phone number"
-                                  />
-                                )}
-                              </div>
-                              
-                              <div>
+                          />
+                        )}
+                      </div>
+                      
+                      <div>
                                 <label className="block text-sm font-medium text-neutral-700 mb-1">Member Since</label>
                                 <p className="text-neutral-800 bg-neutral-50 p-3 rounded-lg border border-neutral-200">
                                   {formatDate(profile.joinedDate)}
@@ -1184,7 +1184,7 @@ const BuyerAccount = () => {
                           <div className="animate-spin h-12 w-12 rounded-full border-t-2 border-b-2 border-primary-600"></div>
                         </div>
                       ) : orders.length > 0 ? (
-                        <div>
+                  <div>
                           {/* Filtering and sorting controls */}
                           <div className="mb-6 flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0">
                             <div className="flex items-center space-x-3">
@@ -1203,8 +1203,8 @@ const BuyerAccount = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                                   </svg>
                                 </div>
-                              </div>
-                              
+                    </div>
+                    
                               <div className="relative">
                                 <select 
                                   className="appearance-none pl-3 pr-10 py-2 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-800 hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent cursor-pointer"
@@ -1253,31 +1253,31 @@ const BuyerAccount = () => {
                           </div>
 
                           <div className="shadow-sm rounded-lg overflow-hidden border border-neutral-200">
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y divide-neutral-200">
-                                <thead className="bg-neutral-50">
-                                  <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Order ID</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Date</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Total</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Items</th>
-                                    <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                                  </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-neutral-200">
-                                  {orders.map(order => (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-neutral-200">
+                          <thead className="bg-neutral-50">
+                            <tr>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Order ID</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Date</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Total</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Items</th>
+                              <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-neutral-200">
+                            {orders.map(order => (
                                     <tr key={order.id} className="hover:bg-neutral-50 transition-colors duration-150">
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900">{order.id}</td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{formatDate(order.date)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900">{order.id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{formatDate(order.date)}</td>
                                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900">${order.total.toFixed(2)}</td>
-                                      <td className="px-6 py-4 whitespace-nowrap">
+                                <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                        </span>
-                                      </td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{order.items}</td>
-                                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{order.items}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end items-center space-x-3">
                                           {order.status === 'processing' && (
                                             <button className="text-error-600 hover:text-error-800 flex items-center">
@@ -1305,11 +1305,11 @@ const BuyerAccount = () => {
                                             <FiChevronRight className="ml-1" size={14} />
                                           </Link>
                                         </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                             </div>
                           </div>
                           
@@ -1353,8 +1353,8 @@ const BuyerAccount = () => {
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ) : (
+                      </div>
+                    ) : (
                         <div className="bg-neutral-50 rounded-xl p-8 text-center border border-neutral-200">
                           <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 rounded-full flex items-center justify-center">
                             <FiShoppingBag className="text-neutral-400" size={24} />
@@ -1366,9 +1366,9 @@ const BuyerAccount = () => {
                             className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
                           >
                             Start Shopping
-                          </Link>
-                        </div>
-                      )}
+                        </Link>
+                      </div>
+                    )}
                     </div>
                   </div>
                 )}
@@ -1377,7 +1377,7 @@ const BuyerAccount = () => {
                 {activeTab === 'addresses' && (
                   <div className="bg-white rounded-xl shadow-luxury border border-neutral-100 overflow-hidden">
                     <div className="flex justify-between items-center p-6 border-b border-neutral-100 bg-gradient-to-r from-primary-50 to-neutral-50">
-                      <div>
+                  <div>
                         <h2 className="text-xl font-bold text-neutral-900 font-display">Saved Addresses</h2>
                         <p className="text-sm text-neutral-600 mt-1">Manage delivery locations for your orders</p>
                       </div>
@@ -1513,16 +1513,16 @@ const BuyerAccount = () => {
                         </div>
                       ) : addresses.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {addresses.map(address => (
+                      {addresses.map(address => (
                             <div key={address.id} className="border border-neutral-200 rounded-xl p-5 relative group hover:border-primary-200 hover:shadow-sm transition-all duration-200">
-                              {address.default && (
+                          {address.default && (
                                 <span className="absolute top-4 right-4 bg-gold-100 text-gold-800 text-xs px-2.5 py-1 rounded-full font-medium">Default</span>
-                              )}
-                              
+                          )}
+                          
                               <p className="font-medium text-neutral-900 mb-2">{address.type}</p>
                               <p className="text-sm text-neutral-700">{address.address}</p>
-                              <p className="text-sm text-neutral-700">{address.city}, {address.state} {address.zip}</p>
-                              
+                          <p className="text-sm text-neutral-700">{address.city}, {address.state} {address.zip}</p>
+                          
                               <div className="mt-4 pt-4 border-t border-neutral-100 flex space-x-4">
                                 <button 
                                   onClick={() => handleEditAddress(address)}
@@ -1530,8 +1530,8 @@ const BuyerAccount = () => {
                                 >
                                   <FiEdit className="mr-1" size={14} /> Edit
                                 </button>
-                                {!address.default && (
-                                  <>
+                            {!address.default && (
+                              <>
                                     <button 
                                       onClick={() => handleSetDefaultAddress(address.id)}
                                       className="text-sm text-neutral-600 hover:text-neutral-800 flex items-center transition-colors"
@@ -1544,11 +1544,11 @@ const BuyerAccount = () => {
                                     >
                                       <FiTrash2 className="mr-1" size={14} /> Remove
                                     </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                         </div>
                       ) : (
                         <div className="bg-neutral-50 rounded-xl p-8 text-center border border-neutral-200">
@@ -1573,7 +1573,7 @@ const BuyerAccount = () => {
                 {activeTab === 'payment' && (
                   <div className="bg-white rounded-xl shadow-luxury border border-neutral-100 overflow-hidden">
                     <div className="flex justify-between items-center p-6 border-b border-neutral-100 bg-gradient-to-r from-primary-50 to-neutral-50">
-                      <div>
+                  <div>
                         <h2 className="text-xl font-bold text-neutral-900 font-display">Payment Methods</h2>
                         <p className="text-sm text-neutral-600 mt-1">Manage payment options for your purchases</p>
                       </div>
@@ -1589,39 +1589,39 @@ const BuyerAccount = () => {
                         </div>
                       ) : paymentMethods.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {paymentMethods.map(method => (
+                      {paymentMethods.map(method => (
                             <div key={method.id} className="border border-neutral-200 rounded-xl p-5 relative group hover:border-primary-200 hover:shadow-sm transition-all duration-200">
-                              {method.default && (
+                          {method.default && (
                                 <span className="absolute top-4 right-4 bg-gold-100 text-gold-800 text-xs px-2.5 py-1 rounded-full font-medium">Default</span>
-                              )}
-                              
-                              <div className="flex items-center">
+                          )}
+                          
+                          <div className="flex items-center">
                                 <div className="mr-4 w-12 h-12 rounded-full bg-gradient-to-r from-gold-400 to-gold-300 flex items-center justify-center text-white font-bold shadow-gold">
                                   {method.brand === 'MoMo' ? 'MM' : method.brand === 'Telecel Cash' ? 'TC' : 'MM'}
-                                </div>
-                                <div>
+                            </div>
+                            <div>
                                   <p className="font-medium text-neutral-900">{method.brand} •••• {method.last4}</p>
                                   <p className="text-xs text-neutral-500 mt-1">Mobile Money</p>
-                                </div>
-                              </div>
-                              
+                            </div>
+                          </div>
+                          
                               <div className="mt-4 pt-4 border-t border-neutral-100 flex space-x-4">
                                 <button className="text-sm text-primary-600 hover:text-primary-800 flex items-center transition-colors">
                                   <FiEdit className="mr-1" size={14} /> Update
                                 </button>
-                                {!method.default && (
-                                  <>
+                            {!method.default && (
+                              <>
                                     <button className="text-sm text-neutral-600 hover:text-neutral-800 flex items-center transition-colors">
                                       <FiCheck className="mr-1" size={14} /> Set as Default
                                     </button>
                                     <button className="text-sm text-error-600 hover:text-error-800 flex items-center transition-colors">
                                       <FiTrash2 className="mr-1" size={14} /> Remove
                                     </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                         </div>
                       ) : (
                         <div className="bg-neutral-50 rounded-xl p-8 text-center border border-neutral-200">
@@ -1663,7 +1663,7 @@ const BuyerAccount = () => {
                                   <div className="mt-1 w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
                                     <FiLock size={18} />
                                   </div>
-                                  <div>
+                  <div>
                                     <h3 className="text-lg font-medium text-neutral-800">Password</h3>
                                     <p className="text-neutral-600 text-sm mt-1">
                                       Securely change your password
@@ -1676,8 +1676,8 @@ const BuyerAccount = () => {
                                   className="flex items-center px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg border border-primary-200 hover:bg-primary-100 shadow-sm transition-colors duration-200"
                                 >
                                   {showPasswordForm ? 'Cancel' : 'Change Password'}
-                                </button>
-                              </div>
+                        </button>
+                      </div>
                               
                               <div className="p-5">
                                 {showPasswordForm ? (
@@ -1694,9 +1694,9 @@ const BuyerAccount = () => {
                                           placeholder="Enter your current password"
                                           required
                                         />
-                                      </div>
-                                      
-                                      <div>
+                    </div>
+                    
+                      <div>
                                         <label className="block text-sm font-medium text-neutral-700 mb-1">New Password</label>
                                         <input
                                           type="password"
@@ -1720,7 +1720,7 @@ const BuyerAccount = () => {
                                               }`}>
                                                 {getPasswordStrengthLabel(calculatePasswordStrength(passwordForm.newPassword))}
                                               </span>
-                                            </div>
+                      </div>
                                             <div className="h-1.5 w-full bg-neutral-200 rounded-full overflow-hidden">
                                               <div 
                                                 className={`h-full ${getPasswordStrengthColor(calculatePasswordStrength(passwordForm.newPassword))}`}
@@ -1821,13 +1821,13 @@ const BuyerAccount = () => {
                                   <FiShield size={18} />
                                 </div>
                                 <div>
-                                  <div className="flex items-center">
+                      <div className="flex items-center">
                                     <h3 className="text-lg font-medium text-neutral-800 mr-3">Two-Factor Authentication</h3>
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                       securityInfo.twoFactorEnabled ? 'bg-success-100 text-success-800' : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                      {securityInfo.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                                    </span>
+                        }`}>
+                          {securityInfo.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
                                   </div>
                                   <p className="text-neutral-600 text-sm mt-1">
                                     Add an extra layer of security to your account by requiring a verification code in addition to your password when signing in.
@@ -1913,11 +1913,11 @@ const BuyerAccount = () => {
                                           className="text-sm text-error-600 hover:text-error-800 transition-colors"
                                         >
                                           Sign Out
-                                        </button>
+                        </button>
                                       )}
-                                    </div>
+                      </div>
                                   ))}
-                                </div>
+                    </div>
                               </div>
                             </div>
                             

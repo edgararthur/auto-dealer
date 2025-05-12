@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi';
+import { FiShoppingCart, FiHeart, FiEye, FiBarChart2 } from 'react-icons/fi';
 import PropTypes from 'prop-types';
 
 /**
@@ -11,6 +11,8 @@ import PropTypes from 'prop-types';
  * @param {Function} onAddToCart - Optional function to handle adding to cart
  * @param {Function} onAddToWishlist - Optional function to handle adding to wishlist
  * @param {Function} onQuickView - Optional function to handle quick view
+ * @param {Function} onAddToComparison - Optional function to handle adding to comparison
+ * @param {Boolean} isInComparison - Whether the product is in comparison
  * @param {Boolean} showQuickActions - Whether to show quick action buttons (Add to cart, wishlist)
  * @param {Boolean} compact - Whether to show a compact version of the card
  * @param {String} className - Additional CSS classes
@@ -21,6 +23,8 @@ const ProductCard = ({
   onAddToCart, 
   onAddToWishlist,
   onQuickView,
+  onAddToComparison,
+  isInComparison = false,
   showQuickActions = true,
   compact = false,
   className = '',
@@ -42,6 +46,12 @@ const ProductCard = ({
     e.preventDefault();
     e.stopPropagation();
     if (onQuickView) onQuickView(product.id);
+  };
+
+  const handleAddToComparison = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onAddToComparison) onAddToComparison(product.id);
   };
 
   // Determine if product is out of stock
@@ -101,6 +111,19 @@ const ProductCard = ({
             >
               <FiHeart size={16} />
             </button>
+            
+            {onAddToComparison && (
+              <button 
+                onClick={handleAddToComparison}
+                className={`p-2 mx-1 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 ${
+                  isInComparison ? 'text-primary-600' : 'text-neutral-500 hover:text-primary-600'
+                }`}
+                aria-label="Add to comparison"
+              >
+                <FiBarChart2 size={16} />
+              </button>
+            )}
+            
             {onQuickView && (
               <button 
                 onClick={handleQuickView}
@@ -210,10 +233,12 @@ ProductCard.propTypes = {
   onAddToCart: PropTypes.func,
   onAddToWishlist: PropTypes.func,
   onQuickView: PropTypes.func,
+  onAddToComparison: PropTypes.func,
+  isInComparison: PropTypes.bool,
   showQuickActions: PropTypes.bool,
   compact: PropTypes.bool,
   className: PropTypes.string,
   tags: PropTypes.arrayOf(PropTypes.string)
 };
 
-export default ProductCard; 
+export default React.memo(ProductCard); 

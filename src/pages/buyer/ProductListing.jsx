@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   FiFilter, 
   FiX, 
@@ -10,14 +10,20 @@ import {
   FiShoppingCart,
   FiStar,
   FiHeart,
-  FiSliders
+  FiSliders,
+  FiBarChart2
 } from 'react-icons/fi';
 import { 
   ProductGrid, 
   Breadcrumb, 
   Pagination, 
-  EmptyState 
+  EmptyState,
+  Button
 } from '../../components/common';
+import { useComparison } from '../../contexts/ComparisonContext';
+import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
+import AdvancedFilter from '../../components/common/AdvancedFilter';
 
 // Mock product data (this would come from an API in a real app)
 const products = [
@@ -222,6 +228,17 @@ const ProductListing = () => {
   // Dealers for filter
   const dealers = [...new Set(products.map(p => p.dealer.name))];
 
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { addToWishlist, isInWishlist } = useWishlist();
+  const { 
+    comparisonItems, 
+    addToComparison, 
+    removeFromComparison, 
+    isInComparison, 
+    clearComparison 
+  } = useComparison();
+
   useEffect(() => {
     // Get category from URL
     const categoryParam = searchParams.get('category');
@@ -372,17 +389,29 @@ const ProductListing = () => {
 
   const handleAddToCart = (productId) => {
     console.log(`Added product ${productId} to cart`);
-    // Implement cart functionality
+    addToCart(productId, 1);
   };
 
   const handleAddToWishlist = (productId) => {
     console.log(`Added product ${productId} to wishlist`);
-    // Implement wishlist functionality
+    addToWishlist(productId);
   };
 
   const handleQuickView = (productId) => {
     console.log(`Quick view for product ${productId}`);
-    // Implement quick view functionality
+    console.log('Quick view product:', productId);
+  };
+
+  const handleAddToComparison = (productId) => {
+    if (isInComparison(productId)) {
+      removeFromComparison(productId);
+    } else {
+      addToComparison(productId);
+    }
+  };
+  
+  const handleViewComparison = () => {
+    navigate('/comparison');
   };
 
   // Function to generate product tags
@@ -435,6 +464,60 @@ const ProductListing = () => {
     });
   }
   
+  // Filter options for the AdvancedFilter component
+  const filterOptions = {
+    category: {
+      title: 'Categories',
+      type: 'checkbox',
+      options: categories.map(cat => ({
+        value: cat.id,
+        label: cat.name,
+        count: cat.count
+      }))
+    },
+    price: {
+      title: 'Price',
+      type: 'range',
+      min: 0,
+      max: 1000,
+      step: 10
+    },
+    brand: {
+      title: 'Brands',
+      type: 'checkbox',
+      options: dealers.map(dealer => ({
+        value: dealer,
+        label: dealer
+      }))
+    },
+    rating: {
+      title: 'Rating',
+      type: 'rating',
+      count: 5
+    },
+    search: {
+      title: 'Search Products',
+      type: 'search'
+    },
+    inStock: {
+      title: 'Availability',
+      type: 'radio',
+      options: [
+        { value: 'all', label: 'All Products' },
+        { value: 'inStock', label: 'In Stock Only' }
+      ]
+    }
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filterType, value) => {
+    setSelectedFilters({
+      ...selectedFilters,
+      [filterType]: value
+    });
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
   return (
     <div className="bg-neutral-50 min-h-screen pb-16">
       {/* Breadcrumb */}
@@ -768,8 +851,8 @@ const ProductListing = () => {
                     onAddToCart={handleAddToCart}
                     onAddToWishlist={handleAddToWishlist}
                     onQuickView={handleQuickView}
-                    showQuickActions={true}
-                    emptyMessage="No products match your filters. Try adjusting your criteria."
+                    onAddToComparison={handleAddToComparison}
+                    isInComparison={isInComparison}
                     getProductTags={getProductTags}
                   />
                 </div>
@@ -799,6 +882,57 @@ const ProductListing = () => {
           <FiSliders size={16} />
           <span>Filter & Sort</span>
         </button>
+      </div>
+
+      {/* Comparison floating button */}
+      {comparisonItems.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="flex flex-col items-end space-y-2">
+            <Button
+              onClick={handleViewComparison}
+              variant="primary"
+              className="px-4 py-3 rounded-full shadow-lg"
+            >
+              <div className="flex items-center">
+                <FiBarChart2 size={20} className="mr-2" />
+                <span>Compare ({comparisonItems.length})</span>
+              </div>
+            </Button>
+            
+            {comparisonItems.length > 1 && (
+              <button
+                onClick={clearComparison}
+                className="text-sm text-neutral-600 hover:text-neutral-800 bg-white px-2 py-1 rounded-full shadow-md"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Left sidebar - Filters */}
+      <div className="md:w-64 flex-shrink-0">
+        {/* Mobile filter button - only visible on small screens */}
+        <div className="md:hidden">
+          <AdvancedFilter
+            options={filterOptions}
+            selectedFilters={selectedFilters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={clearFilters}
+            isMobile={true}
+          />
+        </div>
+        
+        {/* Desktop filters - hidden on small screens */}
+        <div className="hidden md:block">
+          <AdvancedFilter
+            options={filterOptions}
+            selectedFilters={selectedFilters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={clearFilters}
+          />
+        </div>
       </div>
     </div>
   );

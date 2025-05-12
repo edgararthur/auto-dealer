@@ -21,6 +21,9 @@ import {
   FiAward,
   FiTag
 } from 'react-icons/fi';
+import { ThemeSwitcher } from '../../components/common';
+import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 
 // Note: In a real implementation, these would come from the cart context/service
 const CART_ITEMS_COUNT = 5;
@@ -28,6 +31,8 @@ const WISHLIST_ITEMS_COUNT = 3;
 
 const StoreHeader = () => {
   const { user, logout } = useAuth();
+  const { items: cartItems } = useCart();
+  const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -94,9 +99,9 @@ const StoreHeader = () => {
   }, [isAccountMenuOpen, isCategoriesOpen]);
 
   return (
-    <header className="sticky top-0 z-50 shadow-luxury">
+    <header className="sticky top-0 z-50 shadow-luxury dark:shadow-none">
       {/* Top bar with contact info and account links */}
-      <div className="bg-neutral-900 text-neutral-200 px-4 py-2 text-xs">
+      <div className="bg-neutral-900 text-neutral-200 px-4 py-2 text-xs dark:bg-neutral-950">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-6">
             <a href="tel:+233509999999" className="hover:text-gold-300 transition-colors duration-200">
@@ -116,12 +121,15 @@ const StoreHeader = () => {
             <Link to="/help" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
               <FiHelpCircle className="inline mr-1" size={12} /> Help
             </Link>
+            <div className="border-l border-neutral-700 pl-4">
+              <ThemeSwitcher variant="icon" className="text-neutral-200" />
+            </div>
           </div>
         </div>
       </div>
       
       {/* Main header with logo, search and cart */}
-      <div className="bg-gradient-luxury px-4 py-4 shadow-inner">
+      <div className="bg-gradient-luxury px-4 py-4 shadow-inner dark:bg-neutral-900">
         <div className="max-w-7xl mx-auto flex items-center">
           {/* Mobile menu button */}
           <button
@@ -149,14 +157,14 @@ const StoreHeader = () => {
               <div className="relative w-full">
                 <input
                   type="text"
-                  className="block w-full py-2.5 pl-4 pr-10 text-sm rounded-md border-0 shadow-inner focus:outline-none focus:ring-2 focus:ring-gold-300 placeholder-neutral-400"
+                  className="block w-full py-2.5 pl-4 pr-10 text-sm rounded-md border-0 shadow-inner focus:outline-none focus:ring-2 focus:ring-gold-300 placeholder-neutral-400 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500"
                   placeholder="Search products, brands and categories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <button
                   type="submit"
-                  className="absolute inset-y-0 right-0 px-3 bg-neutral-800 text-white rounded-r-md hover:bg-neutral-700 transition-colors duration-200"
+                  className="absolute inset-y-0 right-0 px-3 bg-neutral-800 text-white rounded-r-md hover:bg-neutral-700 transition-colors duration-200 dark:bg-neutral-700 dark:hover:bg-neutral-600"
                 >
                   <FiSearch size={20} />
                 </button>
@@ -169,9 +177,9 @@ const StoreHeader = () => {
             {/* Wishlist icon with counter */}
             <Link to="/wishlist" className="relative text-white transition-transform hover:scale-110 hover:text-gold-300 duration-200">
               <FiHeart size={22} />
-              {WISHLIST_ITEMS_COUNT > 0 && (
+              {wishlistItems?.length > 0 && (
                 <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-gold-300 rounded-full">
-                  {WISHLIST_ITEMS_COUNT}
+                  {wishlistItems.length}
                 </span>
               )}
             </Link>
@@ -179,9 +187,9 @@ const StoreHeader = () => {
             {/* Cart icon with counter */}
             <Link to="/cart" className="relative text-white transition-transform hover:scale-110 hover:text-gold-300 duration-200">
               <FiShoppingCart size={22} />
-              {CART_ITEMS_COUNT > 0 && (
+              {cartItems?.length > 0 && (
                 <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-gold-300 rounded-full animate-pulse-slow">
-                  {CART_ITEMS_COUNT}
+                  {cartItems.length}
                 </span>
               )}
             </Link>
@@ -423,18 +431,18 @@ const StoreHeader = () => {
             </Link>
             
             <div className="border-t border-neutral-200 pt-2 mt-2">
-              {categories.map((category, idx) => (
-                <div key={idx}>
-                  <Link
-                    to={`/category/${category.name.toLowerCase().replace(/ /g, '-')}`}
+            {categories.map((category, idx) => (
+              <div key={idx}>
+                <Link
+                  to={`/category/${category.name.toLowerCase().replace(/ /g, '-')}`}
                     className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  onClick={() => setIsMenuOpen(false)}
+                >
                     <span className="mr-2 text-neutral-400">{category.icon}</span>
-                    {category.name}
-                  </Link>
-                </div>
-              ))}
+                  {category.name}
+                </Link>
+              </div>
+            ))}
             </div>
             
             <div className="border-t border-neutral-200 pt-2 mt-2">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   FiArrowLeft, 
   FiShoppingCart, 
@@ -16,158 +16,171 @@ import {
   FiInfo,
   FiThumbsUp,
   FiMessageSquare,
-  FiMapPin
+  FiMapPin,
+  FiGrid,
+  FiList,
+  FiZoomIn,
+  FiBarChart2
 } from 'react-icons/fi';
+import { ProductService } from 'autoplus-shared';
 import { 
   ProductGrid, 
   Breadcrumb, 
   Rating, 
   QuantitySelector,
   ProductSkeleton,
-  EmptyState
+  EmptyState,
+  Button
 } from '../../components/common';
+import VehicleFitmentChecker from '../../components/common/VehicleFitmentChecker';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from 'autoplus-shared';
+import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
+import { useComparison } from '../../contexts/ComparisonContext';
+import { AnimatePresence, motion } from 'framer-motion';
+import { LazyLoadComponent } from 'react-lazy-load-image-component';
 
 const ProductDetail = () => {
   const { productId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { addToComparison, removeFromComparison, isInComparison } = useComparison();
+  
+  const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [loading, setLoading] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const [inWishlist, setInWishlist] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [wishlistId, setWishlistId] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
-  const { user } = useAuth();
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [selectedVariant, setSelectedVariant] = useState(null);
   
+  // Fetch product data
   useEffect(() => {
-    if (productId) {
-      fetchProductDetails();
-      checkIfInWishlist();
-    }
-  }, [productId, user?.id]);
-
-  const fetchProductDetails = async () => {
-    // Simulate fetching product details
-    setTimeout(() => {
-      // Mock product data
-      const mockProduct = {
-        id: productId,
-        name: 'Premium Brake Pads Set',
-        description: 'High-performance ceramic brake pads designed for optimal stopping power and minimal noise. Made with premium materials for long-lasting durability and exceptional braking performance under all driving conditions. Includes wear indicators and all hardware needed for installation.',
-        price: 79.99,
-        oldPrice: 99.99,
-        image: 'https://example.com/images/brake-pads.jpg',
-        additionalImages: [
-          'https://example.com/images/brake-pads-2.jpg',
-          'https://example.com/images/brake-pads-3.jpg',
-          'https://example.com/images/brake-pads-4.jpg',
-        ],
-        category: 'Brake System',
-        subcategory: 'Brake Pads',
-        rating: 4.5,
-        reviewCount: 127,
-        inStock: true,
-        sku: 'BP-12345',
-        isNew: true,
-        compatibleWith: [
-          'Toyota Camry (2018-2022)',
-          'Honda Accord (2017-2021)',
-          'Nissan Altima (2019-2022)'
-        ],
-        specifications: [
-          { name: 'Material', value: 'Ceramic' },
-          { name: 'Position', value: 'Front' },
-          { name: 'Pad Type', value: 'Low Dust' },
-          { name: 'Includes Hardware', value: 'Yes' },
-          { name: 'Wear Indicator', value: 'Yes' },
-          { name: 'Warranty', value: '2 Years' }
-        ],
-        features: [
-          'Advanced ceramic formula for superior braking performance',
-          'Low-dust formulation keeps wheels cleaner',
-          'Engineered for quiet operation and reduced noise',
-          'Includes shims and hardware for complete installation',
-          'Heat-resistant design for consistent performance'
-        ],
-        dealer: {
-          id: 'dealer123',
-          name: 'AutoPlus Parts',
-          logo: 'https://example.com/images/dealer-logo.jpg'
+    const fetchData = async () => {
+      if (productId) {
+        setLoading(true);
+        try {
+          const response = await ProductService.getProductById(productId);
+          if (response.success && response.product) {
+            setProduct(response.product);
+            
+            // Set default variant if available
+            if (response.product.variants && response.product.variants.length > 0) {
+              setSelectedVariant(response.product.variants[0]);
+            }
+            
+            // Also fetch related products
+            const relatedResponse = await ProductService.getProducts({
+              categoryId: response.product.category?.id,
+              limit: 4,
+              exclude: [productId]
+            });
+            
+            if (relatedResponse.success) {
+              setRelatedProducts(relatedResponse.products || []);
+            }
+          } else {
+            console.error('Failed to fetch product:', response.error);
+          }
+        } catch (error) {
+          console.error('Error fetching product details:', error);
+        } finally {
+          setLoading(false);
         }
-      };
-      
-      setProduct(mockProduct);
-      setLoading(false);
-      
-      // Set mock related products
-      setRelatedProducts([
-        {
-          id: 'rel1',
-          name: 'Premium Brake Rotors',
-          price: 119.99,
-          image: 'https://example.com/images/brake-rotors.jpg',
-          rating: 4.3,
-          reviewCount: 89
-        },
-        {
-          id: 'rel2',
-          name: 'Brake Pad Wear Sensors',
-          price: 24.99,
-          image: 'https://example.com/images/wear-sensors.jpg',
-          rating: 4.0,
-          reviewCount: 42
-        },
-        {
-          id: 'rel3',
-          name: 'Brake Caliper Kit',
-          price: 149.99,
-          image: 'https://example.com/images/caliper-kit.jpg',
-          rating: 4.7,
-          reviewCount: 36
-        },
-        {
-          id: 'rel4',
-          name: 'Brake Fluid DOT 4',
-          price: 12.99,
-          image: 'https://example.com/images/brake-fluid.jpg',
-          rating: 4.2,
-          reviewCount: 112
-        }
-      ]);
-    }, 1000);
-  };
-
-  const checkIfInWishlist = async () => {
-    if (!user || !user.id || !productId) return;
+      }
+    };
     
-    try {
-      const { data, error } = await supabase
-        .from('wishlists')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('product_id', productId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking wishlist:', error);
-        return;
-      }
-      
-      if (data) {
-        setInWishlist(true);
-        setWishlistId(data.id);
-      } else {
-        setInWishlist(false);
-        setWishlistId(null);
-      }
-    } catch (error) {
-      console.error('Error checking wishlist:', error);
+    fetchData();
+  }, [productId]);
+  
+  // Check if product is in wishlist
+  const inWishlist = isInWishlist(productId);
+  
+  // Check if product is in comparison
+  const inComparison = isInComparison(productId);
+  
+  // Calculate rating statistics
+  const getRatingStats = () => {
+    if (!product?.reviews || product.reviews.length === 0) return null;
+    
+    const totalReviews = product.reviews.length;
+    const avgRating = product.reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews;
+    
+    // Count reviews by star rating
+    const ratingCounts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+    product.reviews.forEach(review => {
+      ratingCounts[review.rating] = (ratingCounts[review.rating] || 0) + 1;
+    });
+    
+    return {
+      average: avgRating,
+      total: totalReviews,
+      counts: ratingCounts
+    };
+  };
+  
+  const ratingStats = getRatingStats();
+  
+  // Handle image zoom
+  const handleImageMouseMove = (e) => {
+    if (!isZoomed) return;
+    
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    
+    setZoomPosition({ x, y });
+  };
+  
+  // Handle adding product to cart
+  const handleAddToCart = () => {
+    if (!product) return;
+    
+    const variant = selectedVariant ? selectedVariant.id : null;
+    addToCart(product.id, quantity, variant);
+    showNotification(`Added ${quantity} ${quantity > 1 ? 'items' : 'item'} to your cart`);
+  };
+  
+  // Handle adding product to wishlist
+  const handleToggleWishlist = () => {
+    if (!user) {
+      showNotification('Please log in to save items to your wishlist', 'error');
+      return;
+    }
+    
+    if (inWishlist) {
+      removeFromWishlist(productId);
+      showNotification('Removed from your wishlist');
+    } else {
+      addToWishlist(productId);
+      showNotification('Added to your wishlist');
     }
   };
-
+  
+  // Handle adding product to comparison
+  const handleToggleComparison = () => {
+    if (inComparison) {
+      removeFromComparison(productId);
+      showNotification('Removed from comparison');
+    } else {
+      addToComparison(productId);
+      showNotification('Added to comparison');
+    }
+  };
+  
+  // Handle buy now action
+  const handleBuyNow = () => {
+    handleAddToCart();
+    navigate('/checkout');
+  };
+  
+  // Show notification
   const showNotification = (message, type = 'success') => {
     setNotification({
       message,
@@ -178,602 +191,619 @@ const ProductDetail = () => {
       setNotification(null);
     }, 3000);
   };
-
-  const handleQuantityChange = (newQuantity) => {
-    if (newQuantity < 1) return;
-    if (product.inStock && newQuantity > 10) {
-      showNotification('Maximum quantity is 10', 'error');
-      return;
-    }
-    setQuantity(newQuantity);
-  };
-
-  const handleAddToCart = () => {
-    showNotification(`Added ${quantity} ${quantity > 1 ? 'items' : 'item'} to your cart`);
-    console.log(`Added ${quantity} of product ${product.id} to cart`);
-    // Implement cart functionality
-  };
-
-  const handleAddToWishlist = async () => {
-    if (!user || !user.id) {
-      showNotification('Please log in to save items to your wishlist', 'error');
-      return;
-    }
-    
-    try {
-      if (inWishlist) {
-        // Remove from wishlist
-        const { error } = await supabase
-          .from('wishlists')
-          .delete()
-          .eq('id', wishlistId)
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        
-        setInWishlist(false);
-        setWishlistId(null);
-        showNotification('Removed from your wishlist');
-      } else {
-        // Add to wishlist
-        const { data, error } = await supabase
-          .from('wishlists')
-          .insert([
-            { 
-              user_id: user.id, 
-              product_id: productId 
-            }
-          ])
-          .select('id')
-          .single();
-        
-        if (error) throw error;
-        
-        setInWishlist(true);
-        setWishlistId(data.id);
-        showNotification('Added to your wishlist');
-      }
-    } catch (error) {
-      console.error('Error updating wishlist:', error);
-      showNotification('Failed to update wishlist', 'error');
-    }
-  };
-
-  const handleQuickBuy = () => {
-    showNotification('Proceeding to checkout');
-    console.log(`Quick buy for product ${product.id}`);
-    // Navigate to checkout
-  };
   
-  // Build breadcrumb items
-  const breadcrumbItems = [
-    {
-      label: 'Shop',
-      path: '/products'
-    },
-    {
-      label: product.category,
-      path: `/products?category=${encodeURIComponent(product.category)}`
-    },
-    {
-      label: product.name,
-      path: `/products/${product.id}`
-    }
-  ];
-
-  // Calculate sale percentage
-  const salePercentage = product.oldPrice 
-    ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) 
-    : 0;
-  
+  // If loading, show skeleton
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-8">
-          <div className="flex flex-col lg:flex-row animate-pulse">
-            <div className="lg:w-1/2 pr-0 lg:pr-8">
-              <div className="bg-neutral-200 h-96 rounded-lg mb-4"></div>
-              <div className="flex space-x-2">
-                {[...Array(4)].map((_, idx) => (
-                  <div key={idx} className="w-16 h-16 bg-neutral-200 rounded-md"></div>
-                ))}
-              </div>
-            </div>
-            <div className="lg:w-1/2 mt-6 lg:mt-0 space-y-4">
-              <div className="h-8 bg-neutral-200 rounded w-3/4"></div>
-              <div className="h-4 bg-neutral-200 rounded w-1/2"></div>
-              <div className="h-10 bg-neutral-200 rounded w-1/3"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-neutral-200 rounded"></div>
-                <div className="h-4 bg-neutral-200 rounded"></div>
-                <div className="h-4 bg-neutral-200 rounded w-2/3"></div>
-              </div>
-              <div className="h-12 bg-neutral-200 rounded"></div>
-            </div>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <Breadcrumb items={[
+            { name: 'Home', url: '/' },
+            { name: 'Products', url: '/products' },
+            { name: 'Loading...', url: '#' }
+          ]} />
         </div>
+        <ProductSkeleton type="detail" />
       </div>
     );
   }
   
-  return (
-    <div className="bg-neutral-50 pb-16 min-h-screen">
-      {/* Notification toast */}
-      {notification && (
-        <div className={`fixed top-20 right-4 z-50 flex items-center p-4 mb-4 rounded-lg shadow-lg ${
-          notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-        }`}>
-          <div className="ml-3 text-sm font-medium">{notification.message}</div>
-          <button
-            type="button"
-            className="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 inline-flex h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
-            onClick={() => setNotification(null)}
-            aria-label="Close"
-          >
-            <FiX size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <Breadcrumb items={breadcrumbItems} />
+  // If product not found
+  if (!product) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <EmptyState
+          title="Product Not Found"
+          description="The product you're looking for doesn't exist or has been removed."
+          actionText="Back to Products"
+          actionLink="/products"
+        />
       </div>
+    );
+  }
+  
+  // Build breadcrumb items
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Products', url: '/products' },
+    { name: 'Category', url: `/categories/${product.category?.id}` },
+    { name: product.name, url: `#` }
+  ];
+  
+  // Format product images
+  const productImages = product.product_images && product.product_images.length > 0 
+    ? product.product_images.map(img => img.url)
+    : [product.image || 'https://via.placeholder.com/600x600?text=No+Image'];
+  
+  return (
+    <div className="bg-white min-h-screen">
+      {/* Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-5 right-5 z-50 px-6 py-3 rounded-lg shadow-lg ${
+              notification.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+              'bg-red-50 text-red-700 border border-red-200'
+            } flex items-center`}
+          >
+            {notification.type === 'success' ? <FiCheck className="mr-2" /> : <FiX className="mr-2" />}
+            <span>{notification.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Product Section */}
-        <div className="bg-white rounded-lg shadow-sm p-4 md:p-8 mb-8">
-          <div className="flex flex-col lg:flex-row">
-            {/* Left column - Images */}
-            <div className="lg:w-1/2 pr-0 lg:pr-8">
-              <div className="relative bg-neutral-100 rounded-lg overflow-hidden mb-4 h-72 md:h-96">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <div className="mb-8">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+        
+        {/* Back button */}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="mb-6 flex items-center text-neutral-500 hover:text-primary-600 transition-colors"
+        >
+          <FiArrowLeft className="mr-2" />
+          <span>Back</span>
+        </button>
+        
+        {/* Product Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 mb-16">
+          {/* Left Column - Images */}
+          <div className="lg:col-span-3">
+            <LazyLoadComponent>
+              <div className="relative bg-neutral-50 rounded-2xl overflow-hidden h-[500px] mb-4 cursor-zoom-in"
+                  onMouseEnter={() => setIsZoomed(true)}
+                  onMouseLeave={() => setIsZoomed(false)}
+                  onMouseMove={handleImageMouseMove}
+                  onClick={() => setIsZoomed(!isZoomed)}
+              >
                 <img 
-                  src={selectedImage === 0 ? product.image : product.additionalImages[selectedImage - 1]} 
+                  src={productImages[selectedImage]} 
                   alt={product.name}
-                  className="w-full h-full object-contain"
+                  className={`w-full h-full object-contain transition-transform duration-300 ${isZoomed ? 'scale-150' : ''}`}
+                  style={isZoomed ? {
+                    transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+                  } : {}}
                 />
                 
-                {salePercentage > 0 && (
-                  <div className="absolute top-4 left-4 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                    SAVE {salePercentage}%
-                  </div>
-                )}
-                
-                {product.isNew && (
-                  <div className="absolute top-4 right-4 bg-primary-600 text-white text-xs font-bold px-2 py-1 rounded">
-                    NEW
-                  </div>
-                )}
-              </div>
-            
-              {/* Thumbnail gallery */}
-              <div className="flex space-x-2 overflow-x-auto pb-2">
                 <button
-                  onClick={() => setSelectedImage(0)}
-                  className={`w-16 h-16 rounded-md overflow-hidden border-2 ${selectedImage === 0 ? 'border-primary-600' : 'border-transparent'}`}
+                  className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md text-neutral-500 hover:text-primary-600 hover:shadow-lg transition-all duration-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsZoomed(!isZoomed);
+                  }}
                 >
-                  <img
-                    src={product.image} 
-                    alt={`${product.name} - main`} 
-                    className="w-full h-full object-cover"
-                  />
+                  <FiZoomIn size={18} />
                 </button>
-                
-                {product.additionalImages.map((img, idx) => (
-                  <button 
-                    key={idx}
-                    onClick={() => setSelectedImage(idx + 1)}
-                    className={`w-16 h-16 rounded-md overflow-hidden border-2 ${selectedImage === idx + 1 ? 'border-primary-600' : 'border-transparent'}`}
+              </div>
+              
+              {/* Thumbnail Gallery */}
+              <div className="flex space-x-4 overflow-x-auto pb-2">
+                {productImages.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`flex-shrink-0 w-24 h-24 bg-neutral-50 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      selectedImage === index ? 'border-primary-600 shadow-md' : 'border-transparent'
+                    }`}
                   >
                     <img 
-                      src={img} 
-                      alt={`${product.name} - ${idx + 1}`} 
-                      className="w-full h-full object-cover"
+                      src={image} 
+                      alt={`${product.name} - view ${index + 1}`}
+                      className="w-full h-full object-contain"
                     />
                   </button>
                 ))}
               </div>
-            </div>
+            </LazyLoadComponent>
+          </div>
           
-            {/* Right column - Product details */}
-            <div className="lg:w-1/2 mt-6 lg:mt-0">
-              <div className="flex flex-col h-full">
-                {/* Dealer info */}
-                <div className="mb-2">
-                  <span className="text-sm text-neutral-500 flex items-center">
-                    <img 
-                      src={product.dealer?.logo || "https://via.placeholder.com/40x40?text=D"} 
-                      alt="Dealer" 
-                      className="w-5 h-5 mr-1 rounded-full" 
-                    />
-                    Sold by <Link to={`/dealers/${product.dealer.id}`} className="font-medium text-primary-600 hover:text-primary-700 ml-1">{product.dealer?.name}</Link>
+          {/* Right Column - Details */}
+          <div className="lg:col-span-2 flex flex-col">
+            {/* Product Info */}
+            <div className="mb-8">
+              {/* Badge */}
+              {(product.isNew || product.discount) && (
+                <span className="inline-block px-3 py-1 mb-3 rounded-full bg-accent-500 text-white text-xs font-bold">
+                  {product.isNew ? 'NEW' : `${product.discount}% OFF`}
+                </span>
+              )}
+              
+              {/* Title */}
+              <h1 className="text-3xl font-bold text-neutral-900 mb-4">{product.name}</h1>
+              
+              {/* Part Number/SKU */}
+              <div className="flex items-center text-sm text-neutral-500 mb-4">
+                {product.part_number && (
+                  <div className="mr-4">
+                    <span className="font-medium">Part #:</span> {product.part_number}
+                  </div>
+                )}
+                {product.sku && (
+                  <div>
+                    <span className="font-medium">SKU:</span> {product.sku}
+                  </div>
+                )}
+              </div>
+              
+              {/* Ratings Summary */}
+              {ratingStats && (
+                <div className="flex items-center mb-6">
+                  <Rating value={ratingStats.average} size="medium" />
+                  <span className="ml-2 text-neutral-700 font-medium">
+                    {ratingStats.average.toFixed(1)}
                   </span>
+                  <span className="mx-2 text-neutral-400">•</span>
+                  <a href="#reviews" className="text-primary-600 hover:underline">
+                    {ratingStats.total} {ratingStats.total === 1 ? 'review' : 'reviews'}
+                  </a>
                 </div>
-                
-                <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-2">{product.name}</h1>
-                
-                {/* Ratings */}
-                <div className="flex items-center mb-4">
-                  <Rating value={product.rating} count={product.reviewCount} />
-                  <Link to="#reviews" onClick={() => setActiveTab('reviews')} className="ml-2 text-sm text-primary-600 hover:text-primary-700">
-                    See all reviews
-                  </Link>
-                </div>
-            
-                {/* Price */}
-                <div className="mb-6">
-                  {product.oldPrice ? (
-                    <div className="flex items-center">
-                      <span className="text-2xl font-bold text-red-500">${product.price.toFixed(2)}</span>
-                      <span className="ml-2 text-sm text-neutral-500 line-through">${product.oldPrice.toFixed(2)}</span>
-                      <span className="ml-2 px-2 py-1 bg-red-100 text-red-600 text-xs font-bold rounded">
-                        SAVE ${(product.oldPrice - product.price).toFixed(2)}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-2xl font-bold text-neutral-900">${product.price.toFixed(2)}</span>
+              )}
+              
+              {/* Short Description */}
+              <p className="text-neutral-600 mb-6">
+                {product.short_description || product.description?.substring(0, 120) + '...'}
+              </p>
+              
+              {/* Price */}
+              <div className="mb-6">
+                <div className="flex items-end">
+                  {product.oldPrice && (
+                    <span className="text-neutral-400 line-through text-lg mr-3">
+                      ${product.oldPrice.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-3xl font-bold text-neutral-900">
+                    ${(selectedVariant?.price || product.price).toFixed(2)}
+                  </span>
+                  
+                  {product.oldPrice && (
+                    <span className="ml-3 text-accent-600 font-medium">
+                      Save ${(product.oldPrice - product.price).toFixed(2)}
+                    </span>
                   )}
                 </div>
+                
+                {/* In Stock Status */}
+                <div className="mt-2 flex items-center">
+                  {product.inStock !== false ? (
+                    <>
+                      <span className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></span>
+                      <span className="text-emerald-600 font-medium">In Stock</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                      <span className="text-red-600 font-medium">Out of Stock</span>
+                    </>
+                  )}
+                  
+                  {product.stock_quantity && product.stock_quantity < 10 && (
+                    <span className="ml-2 text-amber-600 text-sm">
+                      Only {product.stock_quantity} left
+                    </span>
+                  )}
+                </div>
+              </div>
               
-                {/* Short description */}
+              {/* Variants Selection */}
+              {product.variants && product.variants.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-neutral-700">
-                    {showFullDescription 
-                      ? product.description 
-                      : `${product.description.substring(0, 200)}...`
-                    }
-                  </p>
-                  <button 
-                    onClick={() => setShowFullDescription(!showFullDescription)}
-                    className="mt-2 text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    {showFullDescription ? 'Show less' : 'Read more'}
-                  </button>
-                </div>
-                
-                {/* Stock and SKU */}
-                <div className="flex space-x-6 mb-6">
-                  <div className="flex items-center">
-                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span className="text-sm text-neutral-700">{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
-                  </div>
-                  <div className="text-sm text-neutral-500">
-                    SKU: <span className="text-neutral-700">{product.sku}</span>
-                  </div>
-                </div>
-                
-                {/* Compatibility */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-neutral-700 mb-2">Compatible with:</h3>
+                  <h3 className="text-sm font-medium text-neutral-700 mb-3">Options</h3>
                   <div className="flex flex-wrap gap-2">
-                    {product.compatibleWith.map((car, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-neutral-100 text-neutral-700 text-sm rounded-full">
-                        {car}
-                      </span>
+                    {product.variants.map(variant => (
+                      <button
+                        key={variant.id}
+                        onClick={() => setSelectedVariant(variant)}
+                        className={`px-4 py-2 rounded-lg border transition-all ${
+                          selectedVariant?.id === variant.id 
+                            ? 'border-primary-600 bg-primary-50 text-primary-700' 
+                            : 'border-neutral-200 hover:border-neutral-300'
+                        }`}
+                      >
+                        {variant.name}
+                      </button>
                     ))}
                   </div>
                 </div>
-            
-                {/* Quantity and add to cart */}
-                <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
-                  <QuantitySelector 
-                    value={quantity} 
-                    onChange={handleQuantityChange} 
-                    min={1} 
-                    max={99} 
-                    disabled={!product.inStock}
-                  />
+              )}
+              
+              {/* Quantity & Add to Cart */}
+              {product.inStock !== false && (
+                <div className="mb-8">
+                  <div className="flex items-center mb-6">
+                    <h3 className="text-sm font-medium text-neutral-700 mr-4 w-24">Quantity</h3>
+                    <QuantitySelector 
+                      value={quantity} 
+                      onChange={setQuantity} 
+                      min={1} 
+                      max={product.stock_quantity || 10} 
+                    />
+                  </div>
                   
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!product.inStock}
-                    className={`flex-1 flex items-center justify-center py-3 px-4 ${
-                      product.inStock
-                        ? 'bg-primary-600 hover:bg-primary-700 text-white' 
-                        : 'bg-neutral-200 text-neutral-500 cursor-not-allowed'
-                    } rounded-md transition-colors`}
-                  >
-                    <FiShoppingCart className="mr-2 h-5 w-5" />
-                    Add to Cart
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex flex-col space-y-3">
+                    <Button 
+                      onClick={handleAddToCart}
+                      size="large"
+                      className="w-full"
+                    >
+                      <FiShoppingCart className="mr-2" />
+                      Add to Cart
+                    </Button>
+                    
+                    <Button 
+                      onClick={handleBuyNow}
+                      variant="secondary"
+                      size="large"
+                      className="w-full"
+                    >
+                      Buy Now
+                    </Button>
+                    
+                    <div className="flex space-x-3">
+                      <Button 
+                        onClick={handleToggleWishlist}
+                        variant="outline"
+                        size="large"
+                        className="flex-1"
+                      >
+                        <FiHeart className={`mr-2 ${inWishlist ? 'fill-accent-500 text-accent-500' : ''}`} />
+                        {inWishlist ? 'Saved' : 'Save'}
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleToggleComparison}
+                        variant="outline"
+                        size="large"
+                        className="flex-1"
+                      >
+                        <FiBarChart2 className={`mr-2 ${inComparison ? 'text-primary-500' : ''}`} />
+                        {inComparison ? 'Added' : 'Compare'}
+                      </Button>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => {
+                        navigator.share({
+                          title: product.name,
+                          text: product.short_description || product.description?.substring(0, 120),
+                          url: window.location.href
+                        }).catch(err => console.error('Could not share', err));
+                      }}
+                      variant="outline"
+                      size="large"
+                      className="w-full"
+                    >
+                      <FiShare2 className="mr-2" />
+                      Share
+                    </Button>
+                  </div>
                 </div>
-
-                {/* Buy now button */}
-                {product.inStock && (
-                  <button
-                    onClick={handleQuickBuy}
-                    className="w-full flex items-center justify-center py-3 px-4 mb-6 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
-                  >
-                    Buy Now
-                  </button>
+              )}
+              
+              {/* Additional Info */}
+              <div className="border-t border-neutral-200 pt-6 space-y-4">
+                {/* Shipping */}
+                <div className="flex items-start">
+                  <FiTruck className="text-neutral-400 mt-1 mr-3" />
+                  <div>
+                    <h4 className="font-medium text-neutral-800">Free Shipping</h4>
+                    <p className="text-sm text-neutral-500">Orders over $50 qualify for free shipping</p>
+                  </div>
+                </div>
+                
+                {/* Returns */}
+                <div className="flex items-start">
+                  <FiShield className="text-neutral-400 mt-1 mr-3" />
+                  <div>
+                    <h4 className="font-medium text-neutral-800">Returns</h4>
+                    <p className="text-sm text-neutral-500">30-day money back guarantee</p>
+                  </div>
+                </div>
+                
+                {/* Warranty */}
+                {product.warranty && (
+                  <div className="flex items-start">
+                    <FiClock className="text-neutral-400 mt-1 mr-3" />
+                    <div>
+                      <h4 className="font-medium text-neutral-800">Warranty</h4>
+                      <p className="text-sm text-neutral-500">{product.warranty}</p>
+                    </div>
+                  </div>
                 )}
                 
-                {/* Action buttons */}
-                <div className="flex space-x-4 mb-6">
-                  <button 
-                    className={`flex items-center ${
-                      inWishlist ? 'text-red-500' : 'text-neutral-600 hover:text-red-500'
-                    }`}
-                    onClick={handleAddToWishlist}
-                  >
-                    <FiHeart className="mr-1 h-4 w-4" fill={inWishlist ? 'currentColor' : 'none'} />
-                    <span className="text-sm">{inWishlist ? 'In Wishlist' : 'Add to Wishlist'}</span>
-                  </button>
-                  <button className="flex items-center text-neutral-600 hover:text-blue-500">
-                    <FiShare2 className="mr-1 h-4 w-4" />
-                    <span className="text-sm">Share</span>
-                  </button>
-                </div>
-            
-                {/* Features */}
-                <div className="bg-neutral-50 p-4 rounded-md mb-6">
-                  <h3 className="text-sm font-medium text-neutral-900 mb-2">Key Features:</h3>
-                  <ul className="space-y-1">
-                    {product.features.slice(0, 3).map((feature, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <FiCheck className="text-green-500 h-5 w-5 flex-shrink-0 mr-2" />
-                        <span className="text-sm text-neutral-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                {/* Shipping & Returns */}
-                <div className="grid grid-cols-2 gap-3 border-t border-neutral-200 pt-4 mt-auto">
+                {/* Seller */}
+                {product.dealer && (
                   <div className="flex items-start">
-                    <FiTruck className="h-5 w-5 text-neutral-400 flex-shrink-0 mr-2" />
+                    <FiMapPin className="text-neutral-400 mt-1 mr-3" />
                     <div>
-                      <h4 className="text-sm font-medium text-neutral-900">Free Shipping</h4>
-                      <p className="text-xs text-neutral-500">For orders over $100</p>
+                      <h4 className="font-medium text-neutral-800">Sold by</h4>
+                      <Link to={`/dealers/${product.dealer.id}`} className="text-sm text-primary-600 hover:underline">
+                        {product.dealer.company_name || product.dealer.name}
+                      </Link>
                     </div>
                   </div>
-                  <div className="flex items-start">
-                    <FiShield className="h-5 w-5 text-neutral-400 flex-shrink-0 mr-2" />
-                    <div>
-                      <h4 className="text-sm font-medium text-neutral-900">Warranty</h4>
-                      <p className="text-xs text-neutral-500">1 year manufacturer</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <FiClock className="h-5 w-5 text-neutral-400 flex-shrink-0 mr-2" />
-                    <div>
-                      <h4 className="text-sm font-medium text-neutral-900">30-Day Returns</h4>
-                      <p className="text-xs text-neutral-500">Hassle-free returns</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <FiInfo className="h-5 w-5 text-neutral-400 flex-shrink-0 mr-2" />
-                    <div>
-                      <h4 className="text-sm font-medium text-neutral-900">Support</h4>
-                      <p className="text-xs text-neutral-500">24/7 customer service</p>
-                    </div>
-                  </div>
-                </div>
+                )}
+              </div>
+
+              {/* Vehicle Fitment Checker */}
+              <div className="mt-6 pt-6 border-t border-neutral-200">
+                <VehicleFitmentChecker productId={product.id} />
               </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Tabs Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-sm mb-8 overflow-hidden">
-          <div className="flex overflow-x-auto border-b border-neutral-200 scrollbar-hide">
-            <button
-              className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
-                activeTab === 'description'
-                  ? 'text-primary-600 border-b-2 border-primary-600' 
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-              onClick={() => setActiveTab('description')}
-            >
-              Description
-            </button>
-            <button
-              className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
-                activeTab === 'specifications' 
-                  ? 'text-primary-600 border-b-2 border-primary-600' 
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-              onClick={() => setActiveTab('specifications')}
-            >
-              Specifications
-            </button>
-            <button
-              id="reviews"
-              className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
-                activeTab === 'reviews' 
-                  ? 'text-primary-600 border-b-2 border-primary-600' 
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-              onClick={() => setActiveTab('reviews')}
-            >
-              Reviews ({product.reviews.length})
-            </button>
-            <button
-              className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
-                activeTab === 'dealer' 
-                  ? 'text-primary-600 border-b-2 border-primary-600' 
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-              onClick={() => setActiveTab('dealer')}
-            >
-              About Dealer
-            </button>
-          </div>
         
-          <div className="p-6">
+        {/* Product Details Tabs */}
+        <div className="mb-16">
+          <div className="border-b border-neutral-200">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('description')}
+                className={`py-4 px-6 text-md font-medium border-b-2 ${
+                  activeTab === 'description' 
+                    ? 'border-primary-600 text-primary-600' 
+                    : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                Description
+              </button>
+              <button
+                onClick={() => setActiveTab('specifications')}
+                className={`py-4 px-6 text-md font-medium border-b-2 ${
+                  activeTab === 'specifications' 
+                    ? 'border-primary-600 text-primary-600' 
+                    : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                Specifications
+              </button>
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={`py-4 px-6 text-md font-medium border-b-2 ${
+                  activeTab === 'reviews' 
+                    ? 'border-primary-600 text-primary-600' 
+                    : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                Reviews {ratingStats && `(${ratingStats.total})`}
+              </button>
+            </div>
+          </div>
+          
+          <div className="py-8">
+            {/* Description Tab */}
             {activeTab === 'description' && (
-              <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-4">Product Description</h2>
-                <p className="text-neutral-700 mb-4">{product.description}</p>
-                <div className="mt-6">
-                  <h3 className="text-lg font-medium text-neutral-900 mb-3">Key Features</h3>
-                  <ul className="space-y-2">
-                    {product.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <FiCheck className="text-green-500 h-5 w-5 flex-shrink-0 mr-2 mt-0.5" />
-                        <span className="text-neutral-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="prose prose-lg max-w-none">
+                <div className={`${!showFullDescription && 'max-h-96 overflow-hidden relative'}`}>
+                  {product.description}
+                  
+                  {!showFullDescription && (
+                    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
+                  )}
                 </div>
+                
+                {product.description && product.description.length > 500 && (
+                  <button
+                    onClick={() => setShowFullDescription(!showFullDescription)}
+                    className="mt-4 text-primary-600 hover:text-primary-700 flex items-center font-medium"
+                  >
+                    {showFullDescription ? (
+                      <>
+                        Show Less <FiChevronUp className="ml-1" />
+                      </>
+                    ) : (
+                      <>
+                        Show More <FiChevronDown className="ml-1" />
+                      </>
+                    )}
+                  </button>
+                )}
+                
+                {/* Features */}
+                {product.features && product.features.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4">Key Features</h3>
+                    <ul className="space-y-2">
+                      {product.features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <FiCheck className="text-primary-600 mt-1 mr-2 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Compatibility */}
+                {product.compatibleWith && product.compatibleWith.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4">Compatible With</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {product.compatibleWith.map((item, index) => (
+                        <div key={index} className="flex items-center p-3 bg-neutral-50 rounded-lg">
+                          <FiCheck className="text-primary-600 mr-2 flex-shrink-0" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-          
+            
+            {/* Specifications Tab */}
             {activeTab === 'specifications' && (
               <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-4">Technical Specifications</h2>
-                <div className="border rounded-md overflow-hidden">
-                  {product.specifications.map((spec, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`flex ${idx % 2 === 0 ? 'bg-neutral-50' : 'bg-white'}`}
-                    >
-                      <div className="w-1/3 p-3 font-medium text-neutral-700 border-r border-neutral-200">
-                        {spec.name}
+                {product.specifications && product.specifications.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                    {product.specifications.map((spec, index) => (
+                      <div key={index} className="py-3 border-b border-neutral-100">
+                        <div className="flex justify-between">
+                          <span className="text-neutral-600 font-medium">{spec.name}</span>
+                          <span className="text-neutral-900">{spec.value}</span>
+                        </div>
                       </div>
-                      <div className="w-2/3 p-3 text-neutral-700">
-                        {spec.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-neutral-500 italic">No specifications available for this product.</p>
+                )}
               </div>
             )}
-          
+            
+            {/* Reviews Tab */}
             {activeTab === 'reviews' && (
               <div>
-                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-8">
-                  <div className="md:w-1/3">
-                    <h2 className="text-xl font-medium text-neutral-900 mb-4">Customer Reviews</h2>
-                    <div className="bg-neutral-50 p-4 rounded-lg">
-                      <div className="flex items-center mb-4">
-                        <div className="mr-4">
-                          <span className="text-4xl font-bold text-neutral-900">{product.rating}</span>
-                          <span className="text-sm text-neutral-500"> out of 5</span>
+                {product.reviews && product.reviews.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Review Summary */}
+                    <div className="bg-neutral-50 p-6 rounded-xl">
+                      <h3 className="text-lg font-bold mb-4">Customer Ratings</h3>
+                      <div className="flex items-center justify-center flex-col mb-6">
+                        <span className="text-5xl font-bold">{ratingStats.average.toFixed(1)}</span>
+                        <div className="my-2">
+                          <Rating value={ratingStats.average} size="large" />
                         </div>
-                        <div>
-                          <Rating value={product.rating} size={20} />
-                          <p className="text-sm text-neutral-600 mt-1">{product.reviewCount} ratings</p>
-                        </div>
+                        <span className="text-neutral-500">{ratingStats.total} reviews</span>
                       </div>
                       
-                      {/* Rating bars */}
+                      {/* Rating Distribution */}
                       <div className="space-y-2">
-                        {[5, 4, 3, 2, 1].map((rating) => {
-                          // Calculate percentage (mock data)
-                          const percentage = rating === 5 ? 70 : rating === 4 ? 20 : rating === 3 ? 7 : rating === 2 ? 2 : 1;
+                        {[5, 4, 3, 2, 1].map(stars => {
+                          const count = ratingStats.counts[stars] || 0;
+                          const percentage = (count / ratingStats.total) * 100;
+                          
                           return (
-                            <div key={rating} className="flex items-center">
-                              <div className="w-10 text-sm text-neutral-600 mr-2">{rating} star</div>
-                              <div className="flex-1 h-2 bg-neutral-200 rounded-full">
+                            <div key={stars} className="flex items-center">
+                              <div className="w-8 text-sm text-neutral-600 font-medium">{stars} <FiStar className="inline-block" size={12} /></div>
+                              <div className="flex-1 mx-3 h-2 bg-neutral-200 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-2 bg-yellow-400 rounded-full" 
+                                  className="h-full bg-primary-600 rounded-full"
                                   style={{ width: `${percentage}%` }}
                                 ></div>
                               </div>
-                              <div className="w-10 text-sm text-neutral-500 ml-2">{percentage}%</div>
+                              <div className="w-8 text-right text-sm text-neutral-600">{count}</div>
                             </div>
                           );
                         })}
                       </div>
                       
-                      <button className="mt-4 px-4 py-2 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors w-full">
-                        Write a Review
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="md:w-2/3">
-                    <div className="space-y-6">
-                      {product.reviews.map((review) => (
-                        <div key={review.id} className="border-b border-neutral-200 pb-6">
-                          <div className="flex justify-between mb-2">
-                            <h3 className="font-medium text-neutral-900">{review.user}</h3>
-                            <span className="text-sm text-neutral-500">{review.date}</span>
-                          </div>
-                          <div className="mb-2">
-                            <Rating value={review.rating} size={16} />
-                          </div>
-                          <p className="text-neutral-700 mb-2">{review.comment}</p>
-                          <div className="flex items-center text-sm text-neutral-500">
-                            <button className="hover:text-neutral-700 flex items-center">
-                              <FiThumbsUp size={14} className="mr-1" />
-                              <span>{review.helpful} people found this helpful</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {/* Show more reviews button */}
-                      {product.reviews.length > 3 && (
-                        <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                          Show more reviews
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {activeTab === 'dealer' && (
-              <div>
-                <div className="flex flex-col md:flex-row md:items-start gap-6">
-                  <div className="md:w-1/4 flex flex-col items-center">
-                    <img 
-                      src={product.dealer.logo} 
-                      alt={product.dealer.name} 
-                      className="w-32 h-32 rounded-full shadow-sm mb-3" 
-                    />
-                    <h3 className="text-lg font-medium text-neutral-900">{product.dealer.name}</h3>
-                    <div className="flex items-center mt-1 mb-3">
-                      <Rating value={product.dealer.rating} count={product.dealer.reviewCount} />
-                    </div>
-                    <span className="text-sm text-neutral-500">Member since {product.dealer.joinedDate}</span>
-                    <button className="mt-4 px-4 py-2 w-full text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
-                      View Store
-                    </button>
-                  </div>
-                    
-                  <div className="md:w-3/4">
-                    <h2 className="text-xl font-medium text-neutral-900 mb-3">About {product.dealer.name}</h2>
-                    <p className="text-neutral-700 mb-4">{product.dealer.description}</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                      <div className="bg-neutral-50 p-4 rounded-md">
-                        <h3 className="font-medium text-neutral-900 mb-2 flex items-center">
-                          <FiMapPin className="mr-2 text-neutral-500" />
-                          Location
-                        </h3>
-                        <p className="text-neutral-700">{product.dealer.location}</p>
+                      <div className="mt-6">
+                        <Button 
+                          onClick={() => {}}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <FiMessageSquare className="mr-2" />
+                          Write a Review
+                        </Button>
                       </div>
-                      <div className="bg-neutral-50 p-4 rounded-md">
-                        <h3 className="font-medium text-neutral-900 mb-2 flex items-center">
-                          <FiMessageSquare className="mr-2 text-neutral-500" />
-                          Contact
-                        </h3>
-                        <button className="text-primary-600 hover:text-primary-700">
-                          Send Message
-                        </button>
+                    </div>
+                    
+                    {/* Review List */}
+                    <div className="lg:col-span-2">
+                      <h3 className="text-lg font-bold mb-4">Reviews</h3>
+                      <div className="space-y-6">
+                        {product.reviews.map((review, index) => (
+                          <div key={index} className="border-b border-neutral-100 pb-6">
+                            <div className="flex justify-between mb-2">
+                              <div className="flex items-center">
+                                <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-lg font-bold text-neutral-600">
+                                  {review.user?.name?.charAt(0) || 'U'}
+                                </div>
+                                <div className="ml-3">
+                                  <h4 className="font-medium">{review.user?.name || 'Anonymous'}</h4>
+                                  <div className="flex items-center">
+                                    <Rating value={review.rating} size="small" />
+                                    <span className="ml-2 text-sm text-neutral-500">
+                                      {new Date(review.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <button className="text-neutral-400 hover:text-neutral-600">
+                                <FiThumbsUp />
+                              </button>
+                            </div>
+                            <p className="text-neutral-700 mt-3">{review.comment}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FiMessageSquare size={48} className="mx-auto text-neutral-300 mb-4" />
+                    <h3 className="text-lg font-bold text-neutral-800 mb-2">No Reviews Yet</h3>
+                    <p className="text-neutral-500 mb-6">Be the first to review this product</p>
+                    <Button 
+                      onClick={() => {}}
+                      className="mx-auto"
+                    >
+                      Write a Review
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
-      
+        
         {/* Related Products */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-neutral-900 mb-6">Related Products</h2>
-          <ProductGrid 
-            products={relatedProducts}
-            onAddToCart={handleAddToCart}
-            onAddToWishlist={handleAddToWishlist}
-            columns={4}
+        {relatedProducts.length > 0 && (
+          <LazyLoadComponent threshold={400}>
+            <div className="mb-16">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold">Related Products</h2>
+                <Link to="/products" className="text-primary-600 hover:text-primary-700 font-medium">
+                  View All
+                </Link>
+              </div>
+              <ProductGrid products={relatedProducts} />
+            </div>
+          </LazyLoadComponent>
+        )}
+        
+        {/* Recently Viewed (would typically use local storage or user history) */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold">Recently Viewed</h2>
+            <button className="text-primary-600 hover:text-primary-700 font-medium">
+              Clear All
+            </button>
+          </div>
+          {/* Would typically load from user's browsing history */}
+          <EmptyState 
+            icon={<FiClock size={48} />}
+            title="No recently viewed products"
+            description="Products you view will appear here for easy access."
+            compact
           />
         </div>
       </div>
