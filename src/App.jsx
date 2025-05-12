@@ -30,6 +30,12 @@ import OrderTracking from './pages/buyer/OrderTracking';
 import BuyerAccount from './pages/buyer/BuyerAccount';
 import Wishlist from './pages/buyer/Wishlist';
 import SubmitWarrantyClaim from './pages/buyer/SubmitWarrantyClaim';
+import TodaysDeals from './pages/buyer/TodaysDeals';
+import BestSellers from './pages/buyer/BestSellers';
+import NewArrivals from './pages/buyer/NewArrivals';
+import Brands from './pages/buyer/Brands';
+import CategoryPage from './pages/buyer/CategoryPage';
+import SubcategoryPage from './pages/buyer/SubcategoryPage';
 
 // Landing Page
 import LandingPage from './pages/landing/LandingPage';
@@ -261,6 +267,74 @@ const App = () => {
               <ProtectedRoute>
                 <StoreLayout>
                   <Wishlist />
+                </StoreLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* New routes for the feature pages */}
+          <Route
+            path="/deals"
+            element={
+              <ProtectedRoute>
+                <StoreLayout>
+                  <TodaysDeals />
+                </StoreLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/best-sellers"
+            element={
+              <ProtectedRoute>
+                <StoreLayout>
+                  <BestSellers />
+                </StoreLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/new-arrivals"
+            element={
+              <ProtectedRoute>
+                <StoreLayout>
+                  <NewArrivals />
+                </StoreLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/brands"
+            element={
+              <ProtectedRoute>
+                <StoreLayout>
+                  <Brands />
+                </StoreLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Category and Subcategory Routes */}
+          <Route
+            path="/category/:categorySlug"
+            element={
+              <ProtectedRoute>
+                <StoreLayout>
+                  <CategoryPage />
+                </StoreLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/category/:categorySlug/:subcategorySlug"
+            element={
+              <ProtectedRoute>
+                <StoreLayout>
+                  <SubcategoryPage />
                 </StoreLayout>
               </ProtectedRoute>
             }

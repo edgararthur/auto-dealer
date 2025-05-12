@@ -17,7 +17,9 @@ import {
   FiPhone,
   FiMail,
   FiMap,
-  FiHelpCircle
+  FiHelpCircle,
+  FiAward,
+  FiTag
 } from 'react-icons/fi';
 
 // Note: In a real implementation, these would come from the cart context/service
@@ -92,26 +94,26 @@ const StoreHeader = () => {
   }, [isAccountMenuOpen, isCategoriesOpen]);
 
   return (
-    <header className="sticky top-0 z-50 shadow-md">
+    <header className="sticky top-0 z-50 shadow-luxury">
       {/* Top bar with contact info and account links */}
-      <div className="bg-neutral-800 text-white px-4 py-1.5 text-xs">
+      <div className="bg-neutral-900 text-neutral-200 px-4 py-2 text-xs">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <a href="tel:+233509999999" className="hover:text-primary-500 transition-colors duration-200">
+          <div className="flex items-center space-x-6">
+            <a href="tel:+233509999999" className="hover:text-gold-300 transition-colors duration-200">
               <FiPhone className="inline mr-1" size={12} /> +233 50 999 9999
             </a>
-            <a href="mailto:support@autoplus.com" className="hidden sm:inline-flex items-center hover:text-primary-500 transition-colors duration-200">
+            <a href="mailto:support@autoplus.com" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
               <FiMail className="inline mr-1" size={12} /> support@autoplus.com
             </a>
           </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/track-order" className="hover:text-primary-500 transition-colors duration-200 flex items-center">
+          <div className="flex items-center space-x-6">
+            <Link to="/track-order" className="hover:text-gold-300 transition-colors duration-200 flex items-center">
               <FiPackage className="inline mr-1" size={12} /> Track Order
             </Link>
-            <Link to="/dealers" className="hidden sm:inline-flex items-center hover:text-primary-500 transition-colors duration-200">
+            <Link to="/dealers" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
               <FiMap className="inline mr-1" size={12} /> Find Dealers
             </Link>
-            <Link to="/help" className="hidden sm:inline-flex items-center hover:text-primary-500 transition-colors duration-200">
+            <Link to="/help" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
               <FiHelpCircle className="inline mr-1" size={12} /> Help
             </Link>
           </div>
@@ -119,11 +121,11 @@ const StoreHeader = () => {
       </div>
       
       {/* Main header with logo, search and cart */}
-      <div className="bg-primary-600 px-4 py-3 shadow-inner">
+      <div className="bg-gradient-luxury px-4 py-4 shadow-inner">
         <div className="max-w-7xl mx-auto flex items-center">
           {/* Mobile menu button */}
           <button
-            className="lg:hidden mr-3 text-white hover:text-white/80 transition-colors duration-200"
+            className="lg:hidden mr-3 text-white hover:text-gold-300 transition-colors duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-expanded={isMenuOpen}
             aria-controls="mobile-menu"
@@ -135,7 +137,9 @@ const StoreHeader = () => {
           {/* Logo */}
           <div className="flex-shrink-0 mr-8">
             <Link to="/" className="flex items-center">
-              <span className="text-3xl font-bold text-white">AutoPlus</span>
+              <span className="text-3xl font-bold text-white font-display tracking-wider">
+                <span className="text-gold-300">Auto</span>Plus
+              </span>
             </Link>
           </div>
           
@@ -145,7 +149,7 @@ const StoreHeader = () => {
               <div className="relative w-full">
                 <input
                   type="text"
-                  className="block w-full py-2 pl-4 pr-10 text-sm rounded-l-md border-0 shadow-inner focus:outline-none focus:ring-1 focus:ring-primary-300 placeholder-neutral-400"
+                  className="block w-full py-2.5 pl-4 pr-10 text-sm rounded-md border-0 shadow-inner focus:outline-none focus:ring-2 focus:ring-gold-300 placeholder-neutral-400"
                   placeholder="Search products, brands and categories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -161,22 +165,22 @@ const StoreHeader = () => {
           </div>
           
           {/* User actions */}
-          <div className="flex items-center ml-4 space-x-6">
+          <div className="flex items-center ml-6 space-x-8">
             {/* Wishlist icon with counter */}
-            <Link to="/wishlist" className="relative text-white transition-transform hover:scale-110 duration-200">
+            <Link to="/wishlist" className="relative text-white transition-transform hover:scale-110 hover:text-gold-300 duration-200">
               <FiHeart size={22} />
               {WISHLIST_ITEMS_COUNT > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-secondary-600 rounded-full">
+                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-gold-300 rounded-full">
                   {WISHLIST_ITEMS_COUNT}
                 </span>
               )}
             </Link>
             
             {/* Cart icon with counter */}
-            <Link to="/cart" className="relative text-white transition-transform hover:scale-110 duration-200">
+            <Link to="/cart" className="relative text-white transition-transform hover:scale-110 hover:text-gold-300 duration-200">
               <FiShoppingCart size={22} />
               {CART_ITEMS_COUNT > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-accent-500 rounded-full animate-pulse-slow">
+                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-gold-300 rounded-full animate-pulse-slow">
                   {CART_ITEMS_COUNT}
                 </span>
               )}
@@ -185,7 +189,7 @@ const StoreHeader = () => {
             {/* Account dropdown */}
             <div className="relative account-menu-container">
               <button
-                className="flex items-center text-white transition-transform hover:scale-105 duration-200"
+                className="flex items-center text-white transition-transform hover:scale-105 hover:text-gold-300 duration-200"
                 onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
                 aria-expanded={isAccountMenuOpen}
               >
@@ -198,10 +202,10 @@ const StoreHeader = () => {
               
               {/* Account dropdown menu */}
               {isAccountMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-card-hover z-50 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-luxury z-50 animate-fade-in">
                   {user ? (
                     <div>
-                      <div className="p-4 border-b border-neutral-200 bg-neutral-50 rounded-t-md">
+                      <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-neutral-100 rounded-t-md">
                         <p className="text-sm font-medium text-neutral-900">Hello, {user.profile?.name || user.email}</p>
                         <p className="text-xs text-neutral-500 truncate">{user.email}</p>
                       </div>
@@ -209,7 +213,7 @@ const StoreHeader = () => {
                       <div className="py-2">
                         <Link
                           to="/account"
-                          className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiUser className="mr-3 text-primary-500" size={16} />
                           My Account
@@ -217,7 +221,7 @@ const StoreHeader = () => {
                         
                         <Link
                           to="/orders"
-                          className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiPackage className="mr-3 text-primary-500" size={16} />
                           My Orders
@@ -225,7 +229,7 @@ const StoreHeader = () => {
                         
                         <Link
                           to="/wishlist"
-                          className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiHeart className="mr-3 text-primary-500" size={16} />
                           Saved Items
@@ -233,7 +237,7 @@ const StoreHeader = () => {
                         
                         <Link
                           to="/settings"
-                          className="flex items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiSettings className="mr-3 text-primary-500" size={16} />
                           Settings
@@ -243,7 +247,7 @@ const StoreHeader = () => {
                         
                         <button
                           onClick={handleLogout}
-                          className="flex w-full items-center px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex w-full items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiLogOut className="mr-3 text-primary-500" size={16} />
                           Logout
@@ -255,13 +259,13 @@ const StoreHeader = () => {
                       <div className="p-4">
                         <Link
                           to="/auth/login"
-                          className="w-full mb-2 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200"
+                          className="w-full mb-2 inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200"
                         >
                           Login
                         </Link>
                         <Link
                           to="/auth/register"
-                          className="w-full inline-flex justify-center items-center px-4 py-2 border border-neutral-300 text-sm font-medium rounded-md shadow-sm text-neutral-700 bg-white hover:bg-neutral-50 transition-colors duration-200"
+                          className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-neutral-300 text-sm font-medium rounded-md shadow-sm text-neutral-700 bg-white hover:bg-neutral-50 transition-colors duration-200"
                         >
                           Register
                         </Link>
@@ -276,13 +280,13 @@ const StoreHeader = () => {
       </div>
       
       {/* Categories bar - Only visible on desktop */}
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-white shadow-sm border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center">
             {/* All Categories dropdown */}
             <div className="relative categories-menu-container">
               <button
-                className="flex items-center py-3 px-4 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200"
+                className="flex items-center py-3.5 px-5 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200"
                 onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
                 aria-expanded={isCategoriesOpen}
                 onMouseEnter={() => setIsCategoriesOpen(true)}
@@ -295,7 +299,7 @@ const StoreHeader = () => {
               {/* Mega menu for categories */}
               {isCategoriesOpen && (
                 <div 
-                  className="absolute left-0 mt-0 w-full bg-white shadow-lg z-40 animate-fade-in"
+                  className="absolute left-0 mt-0 w-full bg-white shadow-luxury z-40 animate-fade-in"
                   style={{ width: '700px' }}
                   onMouseLeave={() => setIsCategoriesOpen(false)}
                 >
@@ -306,7 +310,7 @@ const StoreHeader = () => {
                         {categories.map((category, idx) => (
                           <li key={idx}>
                             <button
-                              className={`flex items-center w-full text-left px-4 py-3 text-sm hover:bg-neutral-100 transition-colors duration-200 ${activeCategory === idx ? 'bg-neutral-100 text-primary-600 font-medium' : 'text-neutral-800'}`}
+                              className={`flex items-center w-full text-left px-4 py-3.5 text-sm hover:bg-neutral-100 transition-colors duration-200 ${activeCategory === idx ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 font-medium border-l-4 border-primary-600' : 'text-neutral-800 border-l-4 border-transparent'}`}
                               onMouseEnter={() => setActiveCategory(idx)}
                               onClick={() => navigate(`/category/${category.name.toLowerCase().replace(/ /g, '-')}`)}
                             >
@@ -322,7 +326,7 @@ const StoreHeader = () => {
                     <div className="w-2/3 p-6">
                       {activeCategory !== null && (
                         <div>
-                          <h3 className="text-lg font-medium text-neutral-900 mb-4">
+                          <h3 className="text-lg font-medium text-neutral-900 mb-4 font-display">
                             {categories[activeCategory].name}
                           </h3>
                           <div className="grid grid-cols-2 gap-y-4">
@@ -330,8 +334,9 @@ const StoreHeader = () => {
                               <Link
                                 key={idx}
                                 to={`/category/${categories[activeCategory].name.toLowerCase().replace(/ /g, '-')}/${subcat.toLowerCase().replace(/ /g, '-')}`}
-                                className="text-sm text-neutral-700 hover:text-primary-600 transition-colors duration-200"
+                                className="text-sm text-neutral-700 hover:text-primary-600 transition-colors duration-200 flex items-center"
                               >
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mr-2"></span>
                                 {subcat}
                               </Link>
                             ))}
@@ -345,22 +350,33 @@ const StoreHeader = () => {
             </div>
             
             {/* Featured categories links */}
-            <div className="hidden lg:flex space-x-8 ml-8">
-              <Link to="/products" className="py-3 text-sm font-medium text-accent-600 hover:text-accent-700 transition-colors duration-200">
+            <div className="hidden lg:flex space-x-6 ml-4">
+              <Link to="/products" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-primary-600 hover:text-primary-600 transition-all duration-200">
+                <FiBox className="mr-1.5" size={16} />
                 Products
               </Link>
-              <Link to="/deals" className="py-3 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200">
+              <Link to="/deals" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-accent-500 hover:text-accent-600 transition-all duration-200">
+                <FiTag className="mr-1.5" size={16} />
                 Today's Deals
               </Link>
-              <Link to="/new-arrivals" className="py-3 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200">
+              <Link to="/new-arrivals" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-secondary-600 hover:text-secondary-600 transition-all duration-200">
+                <FiPackage className="mr-1.5" size={16} />
                 New Arrivals
               </Link>
-              <Link to="/best-sellers" className="py-3 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200">
+              <Link to="/best-sellers" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-success-600 hover:text-success-600 transition-all duration-200">
+                <FiAward className="mr-1.5" size={16} />
                 Best Sellers
               </Link>
-              <Link to="/brands" className="py-3 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200">
+              <Link to="/brands" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-gold-500 hover:text-gold-600 transition-all duration-200">
+                <FiBookmark className="mr-1.5" size={16} />
                 Brands
               </Link>
+            </div>
+            
+            <div className="ml-auto hidden lg:block">
+              <div className="bg-gradient-gold px-3 py-1 rounded-full text-xs font-semibold text-neutral-900 shadow-gold">
+                Premium Quality Guaranteed
+              </div>
             </div>
           </div>
         </div>
@@ -372,37 +388,70 @@ const StoreHeader = () => {
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
               to="/deals"
-              className="block px-3 py-2 rounded-md text-base font-medium text-accent-600 hover:bg-neutral-50"
+              className="flex items-center px-3 py-2.5 rounded-md text-base text-accent-600 font-medium hover:bg-neutral-50"
               onClick={() => setIsMenuOpen(false)}
             >
+              <FiTag className="mr-2" size={18} />
               Today's Deals
             </Link>
             
-            {categories.map((category, idx) => (
-              <div key={idx}>
-                <Link
-                  to={`/category/${category.name.toLowerCase().replace(/ /g, '-')}`}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {category.name}
-                </Link>
-              </div>
-            ))}
+            <Link
+              to="/new-arrivals"
+              className="flex items-center px-3 py-2.5 rounded-md text-base text-secondary-600 font-medium hover:bg-neutral-50"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <FiPackage className="mr-2" size={18} />
+              New Arrivals
+            </Link>
+            
+            <Link
+              to="/best-sellers"
+              className="flex items-center px-3 py-2.5 rounded-md text-base text-success-600 font-medium hover:bg-neutral-50"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <FiAward className="mr-2" size={18} />
+              Best Sellers
+            </Link>
+            
+            <Link
+              to="/brands"
+              className="flex items-center px-3 py-2.5 rounded-md text-base text-gold-600 font-medium hover:bg-neutral-50"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <FiBookmark className="mr-2" size={18} />
+              Brands
+            </Link>
+            
+            <div className="border-t border-neutral-200 pt-2 mt-2">
+              {categories.map((category, idx) => (
+                <div key={idx}>
+                  <Link
+                    to={`/category/${category.name.toLowerCase().replace(/ /g, '-')}`}
+                    className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <span className="mr-2 text-neutral-400">{category.icon}</span>
+                    {category.name}
+                  </Link>
+                </div>
+              ))}
+            </div>
             
             <div className="border-t border-neutral-200 pt-2 mt-2">
               <Link
                 to="/track-order"
-                className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
+                className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
                 onClick={() => setIsMenuOpen(false)}
               >
+                <FiPackage className="mr-2" size={18} />
                 Track Order
               </Link>
               <Link
                 to="/help"
-                className="block px-3 py-2 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
+                className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
                 onClick={() => setIsMenuOpen(false)}
               >
+                <FiHelpCircle className="mr-2" size={18} />
                 Help Center
               </Link>
             </div>
