@@ -105,14 +105,28 @@ const UserService = {
         throw error;
       }
 
-      // Get user profile data
-      const { data: profileData, error: profileError } = await supabase
+      // Get user profile data - try by ID first
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
-      if (profileError) {
+      // If no profile found by ID, try by email
+      if (!profileData && !profileError && data.user.email) {
+        const { data: profileByEmail, error: emailError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', data.user.email)
+          .maybeSingle();
+          
+        if (profileByEmail && !emailError) {
+          profileData = profileByEmail;
+        }
+      }
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        // Only throw if it's not a "no rows found" error
         throw profileError;
       }
 
@@ -177,14 +191,28 @@ const UserService = {
         };
       }
 
-      // Get user profile data
-      const { data: profileData, error: profileError } = await supabase
+      // Get user profile data - try by ID first
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.session.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
-      if (profileError) {
+      // If no profile found by ID, try by email
+      if (!profileData && !profileError && data.session.user.email) {
+        const { data: profileByEmail, error: emailError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', data.session.user.email)
+          .maybeSingle();
+          
+        if (profileByEmail && !emailError) {
+          profileData = profileByEmail;
+        }
+      }
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        // Only throw if it's not a "no rows found" error
         throw profileError;
       }
 

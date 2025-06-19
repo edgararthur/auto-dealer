@@ -52,18 +52,69 @@ export function AuthProvider({ children }) {
         // If we have a session, get user profile
         if (currentSession) {
           console.log('Buyer AuthContext: Getting user profile');
-          const { data: profile, error: profileError } = await supabase
+          
+          // First try to get profile by user ID
+          let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', currentSession.user.id)
-            .single();
+            .maybeSingle(); // Use maybeSingle() instead of single()
             
           console.log('Buyer AuthContext: Profile result', { 
             hasProfile: !!profile, 
             error: profileError ? profileError.message : null 
           });
             
-          if (profileError) {
+          // If no profile found by ID, try to find by email
+          if (!profile && !profileError && currentSession.user.email) {
+            console.log('Buyer AuthContext: Profile not found by ID, trying email lookup');
+            const { data: profileByEmail, error: emailError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('email', currentSession.user.email)
+              .maybeSingle();
+              
+            if (profileByEmail && !emailError) {
+              profile = profileByEmail;
+              console.log('Buyer AuthContext: Found profile by email');
+            } else if (emailError) {
+              console.error('Buyer AuthContext: Error finding profile by email:', emailError);
+            }
+          }
+          
+          // If still no profile found, create a basic one for buyer
+          if (!profile && !profileError) {
+            console.log('Buyer AuthContext: No profile found, creating basic buyer profile');
+            try {
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: currentSession.user.id,
+                  full_name: currentSession.user.user_metadata?.full_name || 
+                             currentSession.user.user_metadata?.name || 
+                             currentSession.user.email?.split('@')[0] || 'User',
+                  email: currentSession.user.email,
+                  role: 'customer', // Use 'customer' instead of 'BUYER' to match schema
+                  created_at: new Date(),
+                  is_active: true
+                })
+                .select()
+                .single();
+                
+              if (createError) {
+                console.error('Buyer AuthContext: Error creating profile:', createError);
+                // Continue without profile if creation fails
+              } else {
+                profile = newProfile;
+                console.log('Buyer AuthContext: Created new buyer profile');
+              }
+            } catch (createErr) {
+              console.error('Buyer AuthContext: Exception creating profile:', createErr);
+            }
+          }
+          
+          if (profileError && profileError.code !== 'PGRST116') {
+            // Only throw if it's not a "no rows found" error
             throw profileError;
           }
           
@@ -101,13 +152,28 @@ export function AuthProvider({ children }) {
       if (event === 'SIGNED_IN' && newSession) {
         // Get user profile on sign in
         console.log('Buyer AuthContext: Getting profile after sign in');
-        const { data: profile, error: profileError } = await supabase
+        
+        // Try getting profile by ID first
+        let { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', newSession.user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single()
         
-        if (profileError) {
+        // If no profile found by ID, try by email
+        if (!profile && !profileError && newSession.user.email) {
+          const { data: profileByEmail, error: emailError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', newSession.user.email)
+            .maybeSingle();
+            
+          if (profileByEmail && !emailError) {
+            profile = profileByEmail;
+          }
+        }
+        
+        if (profileError && profileError.code !== 'PGRST116') {
           console.error('Buyer AuthContext: Error getting profile after sign in', profileError);
           return;
         }
@@ -135,8 +201,11 @@ export function AuthProvider({ children }) {
     try {
       setError(null);
       
+      // Handle both 'name' and 'full_name' for backward compatibility
+      const fullName = userData.full_name || userData.name;
+      
       // Validate required fields
-      if (!userData.email || !userData.password || !userData.name) {
+      if (!userData.email || !userData.password || !fullName) {
         return { success: false, error: 'Email, password and name are required' };
       }
       
@@ -146,9 +215,8 @@ export function AuthProvider({ children }) {
         password: userData.password,
         options: {
           data: {
-            name: userData.name,
-            phone: userData.phone || '',
-            role: 'BUYER' // Always BUYER for this signup flow
+            full_name: fullName,
+            role: 'customer' // Always customer for this signup flow
           }
         }
       });
@@ -169,10 +237,9 @@ export function AuthProvider({ children }) {
         .from('profiles')
         .insert({
           id: authData.user.id,
-          name: userData.name,
+          full_name: fullName,
           email: userData.email,
-          phone: userData.phone || '',
-          role: 'BUYER',
+          role: 'customer',
           created_at: new Date(),
           is_active: true
         });
@@ -213,20 +280,60 @@ export function AuthProvider({ children }) {
         throw error;
       }
       
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
+      // Get user profile - try by ID first
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
+      
+      // If no profile found by ID, try by email
+      if (!profile && !profileError && data.user.email) {
+        const { data: profileByEmail, error: emailError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', data.user.email)
+          .maybeSingle();
+          
+        if (profileByEmail && !emailError) {
+          profile = profileByEmail;
+        }
+      }
+      
+      // If still no profile, create one for the buyer
+      if (!profile && !profileError) {
+                 try {
+           const { data: newProfile, error: createError } = await supabase
+             .from('profiles')
+             .insert({
+               id: data.user.id,
+               full_name: data.user.user_metadata?.full_name || 
+                          data.user.user_metadata?.name || 
+                          data.user.email?.split('@')[0] || 'User',
+               email: data.user.email,
+               role: 'customer',
+               created_at: new Date(),
+               is_active: true
+             })
+             .select()
+             .single();
+            
+          if (!createError) {
+            profile = newProfile;
+          }
+        } catch (createErr) {
+          console.error('Login: Error creating profile:', createErr);
+        }
+      }
         
-      if (profileError) {
+      if (profileError && profileError.code !== 'PGRST116') {
+        // Only throw if it's not a "no rows found" error
         throw profileError;
       }
       
-      // Check if this is a buyer account
-      if (profile.role !== 'BUYER') {
-        // Sign out if not a buyer
+      // Check if this is a buyer account (only if we have a profile)
+      if (profile && profile.role !== 'customer') {
+        // Sign out if not a customer/buyer
         await supabase.auth.signOut();
         return { 
           success: false, 
@@ -342,9 +449,10 @@ export function AuthProvider({ children }) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
         
-      if (fetchError) {
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // Only throw if it's not a "no rows found" error
         throw fetchError;
       }
       
@@ -450,6 +558,25 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Helper function to ensure buyer profile exists
+  const ensureBuyerProfile = async (user) => {
+    try {
+      console.log('Buyer AuthContext: Ensuring buyer profile exists for user:', user.id);
+      const { data, error } = await supabase.rpc('ensure_my_buyer_profile');
+      
+      if (error) {
+        console.error('Buyer AuthContext: Error ensuring profile:', error);
+        return null;
+      }
+      
+      console.log('Buyer AuthContext: Profile ensured:', data);
+      return data;
+    } catch (err) {
+      console.error('Buyer AuthContext: Exception ensuring profile:', err);
+      return null;
+    }
+  };
+
   // Context value
   const value = {
     user,
@@ -463,7 +590,8 @@ export function AuthProvider({ children }) {
     resetPassword,
     updateProfile,
     updateEmail,
-    updatePassword
+    updatePassword,
+    ensureBuyerProfile
   };
 
   // Provide auth context to children components
