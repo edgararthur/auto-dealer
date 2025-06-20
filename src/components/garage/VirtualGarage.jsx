@@ -18,7 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMaintenanceReminders } from '../../contexts/MaintenanceRemindersContext';
 import { Button, EmptyState } from '../common';
 import MaintenanceReminders from '../maintenance/MaintenanceReminders';
-import supabase from '../../../shared/supabase/supabaseClient';
+import supabase from '../../../shared/supabase/supabaseClient.js';
 
 const VirtualGarage = () => {
   const navigate = useNavigate();

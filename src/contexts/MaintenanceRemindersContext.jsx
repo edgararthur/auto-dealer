@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
-import supabase from '../../shared/supabase/supabaseClient';
+import supabase from '../../shared/supabase/supabaseClient.js';
 
 const MaintenanceRemindersContext = createContext();
 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import BrowsingHistoryService from '../../shared/services/browsingHistoryService.js';
 import { useAuth } from './AuthContext';
-import supabase from '../../shared/supabase/supabaseClient';
 
 const BrowsingHistoryContext = createContext();
 
@@ -9,166 +9,131 @@ export const useBrowsingHistory = () => useContext(BrowsingHistoryContext);
 
 export const BrowsingHistoryProvider = ({ children, maxHistoryItems = 100 }) => {
   const [historyItems, setHistoryItems] = useState([]);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [patterns, setPatterns] = useState({});
   const { user } = useAuth();
 
-  // Load browsing history from localStorage or database
+  // Load browsing history when user changes
   useEffect(() => {
-    const loadBrowsingHistory = async () => {
-      setLoading(true);
-      try {
-        if (user) {
-          // If user is logged in, load from database
-          const { data, error } = await supabase
-            .from('browsing_history')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('viewed_at', { ascending: false })
-            .limit(maxHistoryItems);
-          
-          if (error) throw error;
-          
-          setHistoryItems(data || []);
-        } else {
-          // If not logged in, load from localStorage
-          const savedHistory = localStorage.getItem('browsingHistory');
-          setHistoryItems(savedHistory ? JSON.parse(savedHistory) : []);
-        }
-      } catch (error) {
-        console.error('Error loading browsing history:', error);
-        // Fallback to localStorage
-        const savedHistory = localStorage.getItem('browsingHistory');
-        setHistoryItems(savedHistory ? JSON.parse(savedHistory) : []);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadBrowsingHistory();
-  }, [user, maxHistoryItems]);
+    loadRecentlyViewed();
+    loadBrowsingPatterns();
+  }, [user]);
 
-  // Save browsing history to localStorage
-  useEffect(() => {
-    if (!loading) {
-      localStorage.setItem('browsingHistory', JSON.stringify(historyItems));
+  // Load browsing history using BrowsingHistoryService
+  const loadBrowsingHistory = async () => {
+    try {
+      setLoading(true);
+      const result = await BrowsingHistoryService.getBrowsingHistory({ 
+        limit: maxHistoryItems 
+      });
+      
+      if (result.success) {
+        setHistoryItems(result.history || []);
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading browsing history:', result.error);
+        }
+        setHistoryItems([]);
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading browsing history:', error);
+      }
+      setHistoryItems([]);
+    } finally {
+      setLoading(false);
     }
-  }, [historyItems, loading]);
+  };
 
-  // Add a product to browsing history
-  const addToHistory = async (productData) => {
-    // Don't add if no product data
-    if (!productData || !productData.id) return;
-
-    // Create history item with timestamp
-    const newHistoryItem = {
-      id: Date.now().toString(),
-      product_id: productData.id,
-      product: productData,
-      viewed_at: new Date().toISOString()
-    };
-
-    // Remove existing entry for the same product (if any)
-    const filteredHistory = historyItems.filter(item => 
-      item.product_id !== productData.id
-    );
-
-    // Add new entry at the beginning (most recent)
-    const updatedHistory = [newHistoryItem, ...filteredHistory];
-    
-    // Limit the history size
-    const limitedHistory = updatedHistory.slice(0, maxHistoryItems);
-    
-    setHistoryItems(limitedHistory);
-
-    // Save to database if user is logged in
-    if (user) {
-      try {
-        // First check if this product is already in history
-        const { data: existingItem } = await supabase
-          .from('browsing_history')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('product_id', productData.id)
-          .single();
-
-        if (existingItem) {
-          // Update existing entry with new timestamp
-          await supabase
-            .from('browsing_history')
-            .update({ 
-              viewed_at: newHistoryItem.viewed_at,
-              product_data: productData
-            })
-            .eq('id', existingItem.id);
-        } else {
-          // Insert new entry
-          await supabase
-            .from('browsing_history')
-            .insert({
-              user_id: user.id,
-              product_id: productData.id,
-              product_data: productData,
-              viewed_at: newHistoryItem.viewed_at
-            });
-        }
-        
-        // Ensure we don't exceed the limit in the database
-        if (limitedHistory.length >= maxHistoryItems) {
-          const { data: oldestEntries } = await supabase
-            .from('browsing_history')
-            .select('id')
-            .eq('user_id', user.id)
-            .order('viewed_at', { ascending: true })
-            .limit(Math.max(0, limitedHistory.length - maxHistoryItems + 1));
-          
-          if (oldestEntries && oldestEntries.length > 0) {
-            // Delete oldest entries that exceed the limit
-            const idsToDelete = oldestEntries.map(entry => entry.id);
-            await supabase
-              .from('browsing_history')
-              .delete()
-              .in('id', idsToDelete);
-          }
-        }
-      } catch (error) {
-        console.error('Error saving browsing history to database:', error);
+  // Load recently viewed products
+  const loadRecentlyViewed = async () => {
+    try {
+      const result = await BrowsingHistoryService.getRecentlyViewed(10);
+      
+      if (result.success) {
+        setRecentlyViewed(result.products || []);
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading recently viewed:', error);
       }
     }
   };
 
+  // Load browsing patterns
+  const loadBrowsingPatterns = async () => {
+    try {
+      const result = await BrowsingHistoryService.getBrowsingPatterns();
+      
+      if (result.success) {
+        setPatterns(result.patterns || {});
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading browsing patterns:', error);
+      }
+    }
+  };
+
+  // Track product view
+  const trackProductView = async (productId, metadata = {}) => {
+    try {
+      const result = await BrowsingHistoryService.trackProductView(productId, metadata);
+      
+      if (result.success) {
+        // Refresh the history and recently viewed
+        loadRecentlyViewed();
+        // Only refresh full history occasionally to avoid too many requests
+        if (Math.random() < 0.1) { // 10% chance
+          loadBrowsingHistory();
+        }
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error tracking product view:', error);
+      }
+    }
+  };
+
+  // Add a product to browsing history (backward compatibility)
+  const addToHistory = async (productData) => {
+    if (!productData || !productData.id) return;
+    
+    await trackProductView(productData.id, {
+      sessionId: sessionStorage.getItem('session_id'),
+      referrer: document.referrer
+    });
+  };
+
   // Clear browsing history
   const clearHistory = async () => {
-    setHistoryItems([]);
-    localStorage.removeItem('browsingHistory');
-    
-    if (user) {
-      try {
-        await supabase
-          .from('browsing_history')
-          .delete()
-          .eq('user_id', user.id);
-      } catch (error) {
-        console.error('Error clearing browsing history from database:', error);
+    try {
+      const result = await BrowsingHistoryService.clearHistory();
+      
+      if (result.success) {
+        setHistoryItems([]);
+        setRecentlyViewed([]);
+        setPatterns({});
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error clearing browsing history:', result.error);
+        }
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error clearing browsing history:', error);
       }
     }
   };
 
   // Remove a single item from browsing history
   const removeFromHistory = async (historyItemId) => {
+    // For now, just remove from local state
+    // In a full implementation, you'd need a service method for this
     const updatedHistory = historyItems.filter(item => item.id !== historyItemId);
     setHistoryItems(updatedHistory);
-    
-    if (user) {
-      try {
-        await supabase
-          .from('browsing_history')
-          .delete()
-          .eq('id', historyItemId)
-          .eq('user_id', user.id);
-      } catch (error) {
-        console.error('Error removing item from browsing history:', error);
-      }
-    }
   };
 
   // Get browsing history grouped by date
@@ -189,13 +154,33 @@ export const BrowsingHistoryProvider = ({ children, maxHistoryItems = 100 }) => 
     }));
   };
 
+  // Get browsing statistics
+  const getStatistics = async () => {
+    try {
+      const result = await BrowsingHistoryService.getStatistics();
+      return result;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting statistics:', error);
+      }
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     historyItems,
+    recentlyViewed,
+    patterns,
     loading,
-    addToHistory,
+    trackProductView,
+    addToHistory, // Backward compatibility
     clearHistory,
     removeFromHistory,
-    getHistoryGroupedByDate
+    getHistoryGroupedByDate,
+    getStatistics,
+    refreshHistory: loadBrowsingHistory,
+    refreshRecentlyViewed: loadRecentlyViewed,
+    refreshPatterns: loadBrowsingPatterns
   };
 
   return (

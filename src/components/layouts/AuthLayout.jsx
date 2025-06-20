@@ -13,7 +13,7 @@ const AuthLayout = ({ children }) => {
           <img
             className="mx-auto h-12 w-auto"
             src="/logo.png"
-            alt="AutoPlus"
+            alt="Autora"
           />
         </Link>
       </div>
@@ -26,7 +26,7 @@ const AuthLayout = ({ children }) => {
       
       <div className="mt-6 text-center text-sm text-gray-500">
         <p>
-          &copy; {new Date().getFullYear()} AutoPlus. All rights reserved.
+          &copy; {new Date().getFullYear()} Autora. All rights reserved.
         </p>
       </div>
     </div>

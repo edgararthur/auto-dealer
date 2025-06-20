@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { WarrantyService, OrderService, ProductService } from 'autoplus-shared';
+import { WarrantyService, OrderService, ProductService } from 'Autora-shared';
 import { 
   FiAlertCircle, 
   FiCheckCircle, 

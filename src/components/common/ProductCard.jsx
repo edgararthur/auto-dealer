@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiHeart, FiEye, FiBarChart2 } from 'react-icons/fi';
+import { FiShoppingCart, FiHeart, FiEye, FiBarChart2, FiStar, FiMapPin, FiCheck, FiTrendingUp, FiZap, FiShield } from 'react-icons/fi';
 import PropTypes from 'prop-types';
+import ProductQuickView from '../product/ProductQuickView';
 
 /**
  * ProductCard Component - A reusable card component for displaying product information
- * Enhanced with modern ecommerce styling
+ * Enhanced with modern ecommerce styling and prominent dealer information
  * 
  * @param {Object} product - The product data to display
  * @param {Function} onAddToCart - Optional function to handle adding to cart
@@ -17,6 +18,7 @@ import PropTypes from 'prop-types';
  * @param {Boolean} compact - Whether to show a compact version of the card
  * @param {String} className - Additional CSS classes
  * @param {Array} tags - Array of tags to display (e.g. ["free shipping", "top rated"])
+ * @param {Function} onPriceCompare - Optional function to handle price comparison
  */
 const ProductCard = ({ 
   product, 
@@ -28,8 +30,10 @@ const ProductCard = ({
   showQuickActions = true,
   compact = false,
   className = '',
-  tags = []
+  tags = [],
+  onPriceCompare
 }) => {
+  const [showQuickViewModal, setShowQuickViewModal] = useState(false);
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -45,7 +49,11 @@ const ProductCard = ({
   const handleQuickView = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onQuickView) onQuickView(product.id);
+    if (onQuickView) {
+      onQuickView(product.id);
+    } else {
+      setShowQuickViewModal(true);
+    }
   };
 
   const handleAddToComparison = (e) => {
@@ -54,28 +62,92 @@ const ProductCard = ({
     if (onAddToComparison) onAddToComparison(product.id);
   };
 
+  const handlePriceCompare = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onPriceCompare) onPriceCompare(product.id);
+  };
+
   // Determine if product is out of stock
   const isOutOfStock = product.inStock === false;
 
-  // Helper function to render badges
-  const renderBadge = () => {
+  // Format price in Ghana Cedis
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS'
+    }).format(price);
+  };
+
+  // Real dealer data from the database (enhanced from ProductService)
+  const dealerInfo = {
+    name: product.dealer?.business_name || product.dealer?.company_name || product.dealer?.name || 'Unknown Dealer',
+    location: product.dealer?.location || (product.dealer?.city && product.dealer?.state ? `${product.dealer.city}, ${product.dealer.state}` : 'Location not available'),
+    rating: product.dealer?.rating || 0,
+    logo: product.dealer?.logo,
+    verified: product.dealer?.verified || false,
+    fastShipping: product.dealer?.fastShipping !== false, // Default to true for better UX
+    returnPolicy: product.dealer?.returnPolicy || '30-day returns',
+    phone: product.dealer?.phone
+  };
+
+  // Helper function to render smart badges
+  const renderBadges = () => {
+    const badges = [];
+    
     if (isOutOfStock) {
-      return <div className="absolute top-0 right-0 z-10 bg-neutral-700 text-white text-xs font-bold px-2 py-1">OUT OF STOCK</div>;
+      badges.push(
+        <div key="stock" className="absolute top-2 right-2 z-10 bg-neutral-700 text-white text-xs font-bold px-2 py-1 rounded">
+          OUT OF STOCK
+        </div>
+      );
+    } else {
+      // New product badge
+      if (product.isNew || product.created_at && new Date(product.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) {
+        badges.push(
+          <div key="new" className="absolute top-2 right-2 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded flex items-center">
+            <FiZap size={10} className="mr-1" />
+            NEW
+          </div>
+        );
+      }
+      
+      // Discount badge
+      if (product.oldPrice && product.oldPrice > product.price) {
+        const discountPercent = Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
+        badges.push(
+          <div key="discount" className="absolute top-2 right-2 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+            -{discountPercent}%
+          </div>
+        );
+      }
+      
+      // Best seller badge (mock logic - in production this would come from analytics)
+      if (product.sales_count && product.sales_count > 100) {
+        badges.push(
+          <div key="bestseller" className="absolute top-2 left-2 z-10 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded flex items-center">
+            🔥 BESTSELLER
+          </div>
+        );
+      }
+      
+      // Fast shipping badge
+      if (dealerInfo.fastShipping) {
+        badges.push(
+          <div key="fastship" className="absolute top-12 left-2 z-10 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded flex items-center">
+            ⚡ FAST SHIP
+          </div>
+        );
+      }
     }
-    if (product.isNew) {
-      return <div className="absolute top-0 right-0 z-10 bg-accent-500 text-white text-xs font-bold px-2 py-1">NEW</div>;
-    }
-    if (product.oldPrice && !product.isNew) {
-      const discountPercent = Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
-      return <div className="absolute top-0 right-0 z-10 bg-accent-500 text-white text-xs font-bold px-2 py-1">-{discountPercent}%</div>;
-    }
-    return null;
+    
+    return badges;
   };
 
   return (
     <div className={`product-card ${className} ${isOutOfStock ? 'opacity-75' : ''} animate-fade-in`}>
-      {/* Badges */}
-      {renderBadge()}
+      {/* Smart Badges */}
+      {renderBadges()}
       
       {/* Tags */}
       {tags.length > 0 && (
@@ -95,7 +167,7 @@ const ProductCard = ({
       <div className={`product-card-image ${compact ? 'h-36' : 'h-48'} p-2`}>
         <Link to={`/products/${product.id}`}>
           <img 
-            src={product.image} 
+            src={product.image || product.product_images?.[0]?.url || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80'} 
             alt={product.name} 
             className={`w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? 'grayscale' : ''}`} 
           />
@@ -139,6 +211,48 @@ const ProductCard = ({
       
       {/* Product info */}
       <div className="product-card-body border-t border-neutral-100">
+        {/* Enhanced Dealer Info Header - New Section */}
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-100">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-neutral-200 rounded-full flex items-center justify-center overflow-hidden">
+              {dealerInfo.logo ? (
+                <img 
+                  src={dealerInfo.logo} 
+                  alt={dealerInfo.name} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-xs font-semibold text-neutral-600">
+                  {dealerInfo.name.substring(0, 2).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-neutral-700 truncate max-w-[120px]">
+                {dealerInfo.name}
+              </span>
+              <div className="flex items-center space-x-1">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <FiStar
+                      key={i}
+                      size={10}
+                      className={i < Math.floor(dealerInfo.rating) ? 'text-yellow-400 fill-current' : 'text-neutral-300'}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-neutral-500">({dealerInfo.rating})</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center text-xs text-neutral-500">
+              <FiMapPin size={10} />
+              <span className="ml-1 truncate max-w-[80px]">{dealerInfo.location}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Product name */}
         <Link to={`/products/${product.id}`} className="block mb-2">
           <h3 className="product-card-title">
@@ -146,16 +260,16 @@ const ProductCard = ({
           </h3>
         </Link>
         
-        {/* Price section */}
+        {/* Enhanced Price section with comparison */}
         <div className="mt-auto">
           {product.oldPrice ? (
             <div className="flex flex-col">
               <span className="product-card-price">
-                ${product.price.toFixed(2)}
+                {formatPrice(product.price)}
               </span>
               <div className="flex items-center mt-1">
                 <span className="product-card-old-price mr-2">
-                  ${product.oldPrice.toFixed(2)}
+                  {formatPrice(product.oldPrice)}
                 </span>
                 <span className="product-card-discount">
                   {Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}% OFF
@@ -164,12 +278,23 @@ const ProductCard = ({
             </div>
           ) : (
             <span className="product-card-price">
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </span>
+          )}
+          
+          {/* Price comparison button */}
+          {onPriceCompare && (
+            <button 
+              onClick={handlePriceCompare}
+              className="text-xs text-primary-600 hover:text-primary-700 mt-1 flex items-center"
+            >
+              <FiTrendingUp size={12} className="mr-1" />
+              Compare prices from other dealers
+            </button>
           )}
         </div>
         
-        {/* Rating */}
+        {/* Product Rating */}
         {product.rating && (
           <div className="product-card-rating">
             <div className="flex text-primary-600">
@@ -189,13 +314,27 @@ const ProductCard = ({
           </div>
         )}
 
-        {/* Dealer info */}
-        {product.dealer && (
-          <div className="flex items-center mt-2 text-xs text-neutral-500">
-            <span>Sold by: </span>
-            <span className="ml-1 font-medium text-primary-600">{product.dealer.name}</span>
+        {/* Dealer-specific badges and shipping info */}
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100">
+          <div className="flex items-center space-x-1">
+            {/* Verified dealer badge */}
+            {dealerInfo.verified && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
+                <FiCheck size={8} className="mr-0.5" />
+                Verified
+              </span>
+            )}
+            {/* Fast shipping badge */}
+            {dealerInfo.fastShipping && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
+                🚚 Fast Ship
+              </span>
+            )}
           </div>
-        )}
+          <span className="text-xs text-neutral-500">
+            Ships in 2-3 days
+          </span>
+        </div>
       </div>
       
       {/* Add to cart button */}
@@ -210,6 +349,16 @@ const ProductCard = ({
           </button>
         </div>
       )}
+
+      {/* Quick View Modal */}
+      <ProductQuickView
+        productId={product.id}
+        isOpen={showQuickViewModal}
+        onClose={() => setShowQuickViewModal(false)}
+        onAddToCart={onAddToCart}
+        onAddToWishlist={onAddToWishlist}
+        onAddToComparison={onAddToComparison}
+      />
     </div>
   );
 };
@@ -220,20 +369,29 @@ ProductCard.propTypes = {
     name: PropTypes.string.isRequired,
     price: PropTypes.number.isRequired,
     oldPrice: PropTypes.number,
-    image: PropTypes.string.isRequired,
+    image: PropTypes.string,
+    product_images: PropTypes.array,
     rating: PropTypes.number,
     reviewCount: PropTypes.number,
     isNew: PropTypes.bool,
     inStock: PropTypes.bool,
     dealer: PropTypes.shape({
       name: PropTypes.string,
-      logo: PropTypes.string
+      company_name: PropTypes.string,
+      logo: PropTypes.string,
+      location: PropTypes.string,
+      city: PropTypes.string,
+      rating: PropTypes.number,
+      verified: PropTypes.bool,
+      fastShipping: PropTypes.bool,
+      returnPolicy: PropTypes.string
     })
   }).isRequired,
   onAddToCart: PropTypes.func,
   onAddToWishlist: PropTypes.func,
   onQuickView: PropTypes.func,
   onAddToComparison: PropTypes.func,
+  onPriceCompare: PropTypes.func,
   isInComparison: PropTypes.bool,
   showQuickActions: PropTypes.bool,
   compact: PropTypes.bool,

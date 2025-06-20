@@ -1,4 +1,4 @@
-import supabase from '../supabase/supabaseClient';
+import supabase from '../supabase/supabaseClient.js';
 import { logError } from '../utils/errorLogger';
 import CartService from './cartService';
 import PaymentService from './paymentService';

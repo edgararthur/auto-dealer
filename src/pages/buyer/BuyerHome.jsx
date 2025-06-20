@@ -2,374 +2,105 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FiArrowRight, 
-  FiTag, 
-  FiShield, 
-  FiTruck, 
+  FiShoppingCart, 
   FiSearch, 
+  FiTrendingUp, 
+  FiPackage, 
+  FiUsers, 
+  FiCheck,
+  FiChevronLeft,
   FiChevronRight,
-  FiStar,
-  FiClock,
-  FiThumbsUp,
-  FiShoppingCart,
-  FiChevronLeft
+  FiStar
 } from 'react-icons/fi';
-
-// Mock data for featured products
-const featuredProducts = [
-  {
-    id: 1,
-    name: 'Premium Brake Pads',
-    category: 'Brakes',
-    price: 49.99,
-    oldPrice: 69.99,
-    image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 156,
-    isNew: false,
-    isFeatured: true
-  },
-  {
-    id: 2,
-    name: 'High-Performance Oil Filter',
-    category: 'Engine',
-    price: 12.99,
-    oldPrice: null,
-    image: 'https://images.unsplash.com/photo-1516733968668-dbdce39c4651?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.5,
-    reviewCount: 89,
-    isNew: true,
-    isFeatured: false
-  },
-  {
-    id: 3,
-    name: 'LED Headlight Kit',
-    category: 'Lighting',
-    price: 129.99,
-    oldPrice: 149.99,
-    image: 'https://images.unsplash.com/photo-1489824904134-891ab64532f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.9,
-    reviewCount: 207,
-    isNew: true,
-    isFeatured: true
-  },
-  {
-    id: 4,
-    name: 'All-Weather Floor Mats',
-    category: 'Interior',
-    price: 79.99,
-    oldPrice: null,
-    image: 'https://images.unsplash.com/photo-1563299796-17596ed6b017?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 132,
-    isNew: false,
-    isFeatured: false
-  },
-  {
-    id: 5,
-    name: 'Performance Air Intake System',
-    category: 'Engine',
-    price: 199.99,
-    oldPrice: 249.99,
-    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 78,
-    isNew: false,
-    isFeatured: true
-  },
-  {
-    id: 6,
-    name: 'Heavy Duty Alternator',
-    category: 'Electrical',
-    price: 159.99,
-    oldPrice: null,
-    image: 'https://images.unsplash.com/photo-1565689157206-0fddef7589a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 42,
-    isNew: true,
-    isFeatured: false
-  },
-  {
-    id: 7,
-    name: 'Suspension Lowering Kit',
-    category: 'Suspension',
-    price: 299.99,
-    oldPrice: 349.99,
-    image: 'https://images.unsplash.com/photo-1562426508-a52ab956ae2c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 65,
-    isNew: false,
-    isFeatured: true
-  },
-  {
-    id: 8,
-    name: 'Power Steering Pump',
-    category: 'Steering',
-    price: 129.99,
-    oldPrice: null,
-    image: 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.4,
-    reviewCount: 36,
-    isNew: false,
-    isFeatured: false
-  }
-];
-
-// Flash deals (time-limited offers)
-const flashDeals = [
-  {
-    id: 10,
-    name: 'Synthetic Motor Oil (5L)',
-    category: 'Engine',
-    price: 29.99,
-    oldPrice: 59.99,
-    image: 'https://images.unsplash.com/photo-1635270364846-5e3190b48026?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.9,
-    reviewCount: 212,
-    discount: 50, // Percent off
-    endsIn: 12 * 60 * 60, // 12 hours in seconds
-  },
-  {
-    id: 11,
-    name: 'Performance Exhaust System',
-    category: 'Exhaust',
-    price: 249.99,
-    oldPrice: 399.99,
-    image: 'https://images.unsplash.com/photo-1596994836684-85ca30e8179b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 98,
-    discount: 38,
-    endsIn: 6 * 60 * 60, // 6 hours in seconds
-  },
-  {
-    id: 12,
-    name: 'Car Battery (60Ah)',
-    category: 'Electrical',
-    price: 89.99,
-    oldPrice: 149.99,
-    image: 'https://images.unsplash.com/photo-1617886322168-72b886573c6c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 156,
-    discount: 40,
-    endsIn: 9 * 60 * 60, // 9 hours in seconds
-  },
-  {
-    id: 13,
-    name: 'Brake Rotor Set',
-    category: 'Brakes',
-    price: 69.99,
-    oldPrice: 99.99,
-    image: 'https://images.unsplash.com/photo-1588169770457-8bfc2de92556?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 68,
-    discount: 30,
-    endsIn: 15 * 60 * 60, // 15 hours in seconds
-  }
-];
-
-// Popular brands
-const brands = [
-  { id: 1, name: 'Bosch', logo: 'https://via.placeholder.com/150x80?text=Bosch' },
-  { id: 2, name: 'Denso', logo: 'https://via.placeholder.com/150x80?text=Denso' },
-  { id: 3, name: 'NGK', logo: 'https://via.placeholder.com/150x80?text=NGK' },
-  { id: 4, name: 'AC Delco', logo: 'https://via.placeholder.com/150x80?text=AC+Delco' },
-  { id: 5, name: 'Moog', logo: 'https://via.placeholder.com/150x80?text=Moog' },
-  { id: 6, name: 'K&N', logo: 'https://via.placeholder.com/150x80?text=K%26N' },
-];
-
-// Mock data for product categories
-const categories = [
-  { 
-    id: 1, 
-    name: 'Engine Parts', 
-    count: 487, 
-    image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🔧' 
-  },
-  { 
-    id: 2, 
-    name: 'Brakes & Suspension', 
-    count: 329, 
-    image: 'https://images.unsplash.com/photo-1482575832494-771f74bf6857?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🛑' 
-  },
-  { 
-    id: 3, 
-    name: 'Lighting & Electrical', 
-    count: 254, 
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '💡' 
-  },
-  { 
-    id: 4, 
-    name: 'Interior Accessories', 
-    count: 198, 
-    image: 'https://images.unsplash.com/photo-1547038577-da80abbc4f19?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🛋️' 
-  },
-  { 
-    id: 5, 
-    name: 'Exterior Accessories', 
-    count: 176, 
-    image: 'https://images.unsplash.com/photo-1553358961-434eadba29d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🚗' 
-  },
-  { 
-    id: 6, 
-    name: 'Wheels & Tires', 
-    count: 143, 
-    image: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🔄' 
-  },
-  { 
-    id: 7, 
-    name: 'Performance Parts', 
-    count: 109, 
-    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🏎️' 
-  },
-  { 
-    id: 8, 
-    name: 'Oils & Fluids', 
-    count: 85, 
-    image: 'https://images.unsplash.com/photo-1563299796-17596ed6b017?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80',
-    icon: '🧴' 
-  }
-];
-
-// Hero banner slides
-const bannerSlides = [
-  {
-    id: 1,
-    title: 'Premium Auto Parts',
-    subtitle: 'Save up to 40% on quality parts',
-    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&h=400&q=80',
-    cta: 'Shop Now',
-    url: '/products',
-    color: 'from-blue-600 to-blue-800'
-  },
-  {
-    id: 2,
-    title: 'Flash Sale',
-    subtitle: 'Limited time offers on brake systems',
-    image: 'https://images.unsplash.com/photo-1599256860237-5e943d633290?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&h=400&q=80',
-    cta: 'Shop Deals',
-    url: '/deals',
-    color: 'from-red-600 to-red-800'
-  },
-  {
-    id: 3,
-    title: 'New Arrivals',
-    subtitle: 'Just landed performance upgrades',
-    image: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&h=400&q=80',
-    cta: 'Discover',
-    url: '/new-arrivals',
-    color: 'from-green-600 to-green-800'
-  }
-];
-
-// Format time for countdown display
-const formatTime = (seconds) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  
-  return {
-    hours: hours.toString().padStart(2, '0'),
-    minutes: minutes.toString().padStart(2, '0'),
-    seconds: secs.toString().padStart(2, '0')
-  };
-};
-
-// Product card component styled like Jumia
-const ProductCard = ({ product, onAddToCart }) => {
-  const isOnSale = product.oldPrice !== null;
-  const discountPercent = isOnSale ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0;
-  
-  return (
-    <div className="bg-white group border border-transparent hover:border-jumia-orange transition-all duration-200">
-      {/* Sale or New badge */}
-      {product.isNew && (
-        <div className="absolute top-0 right-0 z-10 bg-jumia-orange text-white text-xs font-bold px-2 py-1">NEW</div>
-      )}
-      {isOnSale && !product.isNew && (
-        <div className="absolute top-0 right-0 z-10 bg-jumia-orange text-white text-xs font-bold px-2 py-1">-{discountPercent}%</div>
-      )}
-      
-      {/* Product image */}
-      <div className="relative h-48 p-2">
-        <Link to={`/products/${product.id}`}>
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" 
-          />
-        </Link>
-      </div>
-      
-      {/* Product info */}
-      <div className="p-3 border-t border-jumia-lightGray">
-        {/* Product name */}
-        <Link to={`/products/${product.id}`} className="block mb-2">
-          <h3 className="text-sm font-normal text-neutral-700 line-clamp-2 group-hover:text-jumia-orange transition-colors">
-            {product.name}
-          </h3>
-        </Link>
-        
-        {/* Pricing */}
-        <div className="mt-auto">
-          {isOnSale ? (
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-jumia-orange">${product.price.toFixed(2)}</span>
-              <div className="flex items-center mt-1">
-                <span className="text-xs text-neutral-500 line-through mr-2">${product.oldPrice.toFixed(2)}</span>
-                <span className="text-xs bg-jumia-orange text-white px-1 py-0.5">{discountPercent}% OFF</span>
-              </div>
-            </div>
-          ) : (
-            <span className="text-base font-bold text-jumia-orange">${product.price.toFixed(2)}</span>
-          )}
-        </div>
-        
-        {/* Rating */}
-        <div className="flex items-center mt-2">
-          <div className="flex text-jumia-orange">
-            {[...Array(5)].map((_, i) => (
-              <svg 
-                key={i} 
-                className={`w-3 h-3 ${i < Math.floor(product.rating) ? 'text-jumia-orange' : 'text-neutral-300'}`} 
-                fill="currentColor" 
-                viewBox="0 0 20 20" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            ))}
-          </div>
-          <span className="ml-1 text-xs text-neutral-500">({product.reviewCount})</span>
-        </div>
-      </div>
-      
-      {/* Add to cart button */}
-      <button 
-        onClick={() => onAddToCart(product.id)}
-        className="w-full py-2 bg-jumia-orange text-white hover:bg-jumia-orangeDark transition-colors flex items-center justify-center"
-      >
-        <FiShoppingCart size={16} className="mr-2" />
-        <span className="text-sm font-medium">ADD TO CART</span>
-      </button>
-    </div>
-  );
-};
+import ProductService from '../../../shared/services/productService';
+import RecommendationService from '../../../shared/services/recommendationService';
+import { ProductGrid } from '../../components/common';
+import { useCart } from '../../contexts/CartContext';
 
 // Main component
 const BuyerHome = () => {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeSlide, setActiveSlide] = useState(0);
-  const [countdown, setCountdown] = useState(flashDeals.map(deal => deal.endsIn));
-  
+  const { addToCart } = useCart();
+
+  // Fetch data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch featured products
+        const productsResponse = await ProductService.getProducts({
+          sortBy: 'created_at',
+          sortOrder: 'desc',
+          limit: 8 // Get featured products
+        });
+        
+        if (productsResponse.success) {
+          // Add mock data for display since we don't have sales/featured flags
+          const productsWithMockData = (productsResponse.products || []).map((product, index) => ({
+            ...product,
+            rating: 4.0 + Math.random() * 1, // Mock rating between 4-5
+            reviewCount: Math.floor(Math.random() * 200) + 10, // Mock review count
+            isNew: index < 3, // Mark first 3 as new
+            isFeatured: index < 4, // Mark first 4 as featured
+            oldPrice: Math.random() > 0.5 ? product.price * 1.2 : null // Random old price for sales
+          }));
+          
+          setFeaturedProducts(productsWithMockData);
+        } else {
+          setError(productsResponse.error || 'Failed to fetch products');
+        }
+        
+        // Fetch categories
+        const categoriesResponse = await ProductService.getCategories();
+        
+        if (categoriesResponse.success) {
+          // Transform categories for display
+          const transformedCategories = (categoriesResponse.categories || []).slice(0, 8).map((cat, index) => ({
+            id: cat.id,
+            name: cat.name,
+            count: Math.floor(Math.random() * 500) + 50, // Mock count
+            image: `https://images.unsplash.com/photo-${1486262715619 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80`,
+            icon: ['🔧', '🛑', '💡', '🛋️', '🚗', '🔄', '🏎️', '🧴'][index] || '🔧'
+          }));
+          
+          setCategories(transformedCategories);
+        } else {
+          setCategories([]); // Fallback
+        }
+        
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
   // Handle adding items to cart
   const handleAddToCart = (productId) => {
-    console.log(`Added product ${productId} to cart`);
-    // In a real app, this would dispatch to your cart state management
+    const product = featuredProducts.find(p => p.id === productId);
+    if (product) {
+      addToCart(productId, 1, { 
+        dealerId: product.dealer?.id,
+        price: product.price 
+      });
+    }
+  };
+
+  // Handle adding to wishlist
+  const handleAddToWishlist = (productId) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Added product ${productId} to wishlist`);
+  }
+    // Note: This would be implemented with useWishlist hook when that's ready
   };
   
   // Carousel navigation
@@ -389,263 +120,315 @@ const BuyerHome = () => {
     
     return () => clearInterval(timer);
   }, [activeSlide]);
-  
-  // Countdown timer for flash deals
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => 
-        prev.map(time => (time > 0 ? time - 1 : 0))
-      );
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, []);
+
+  // Hero banner slides
+  const bannerSlides = [
+    {
+      id: 1,
+      title: 'Premium Auto Parts',
+      subtitle: 'Save up to 40% on quality parts from verified dealers',
+      image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&h=400&q=80',
+      cta: 'Shop Now',
+      url: '/products',
+      color: 'from-blue-600 to-blue-800'
+    },
+    {
+      id: 2,
+      title: 'Flash Sale',
+      subtitle: 'Limited time offers on brake systems from top dealers',
+      image: 'https://images.unsplash.com/photo-1599256860237-5e943d633290?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&h=400&q=80',
+      cta: 'Shop Deals',
+      url: '/deals',
+      color: 'from-red-600 to-red-800'
+    },
+    {
+      id: 3,
+      title: 'New Arrivals',
+      subtitle: 'Just landed performance upgrades from certified dealers',
+      image: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&h=400&q=80',
+      cta: 'Discover',
+      url: '/new-arrivals',
+      color: 'from-green-600 to-green-800'
+    }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-jumia-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary-500 border-r-transparent align-[-0.125em]"></div>
+          <p className="mt-6 text-neutral-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-jumia-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-medium mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-jumia-background">
-      {/* Hero Banner Carousel */}
-      <div className="relative overflow-hidden mb-4">
-        <div 
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${activeSlide * 100}%)` }}
-        >
-          {bannerSlides.map((slide) => (
-            <div key={slide.id} className="min-w-full relative">
-              <div className="relative h-64 md:h-80 lg:h-96 overflow-hidden">
-                <div className={`absolute inset-0 bg-gradient-to-r ${slide.color} opacity-60 z-10`}></div>
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 flex flex-col justify-center z-20 px-8 md:px-16">
-                  <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">{slide.title}</h1>
-                  <p className="text-lg md:text-xl text-white mb-4">{slide.subtitle}</p>
+    <div className="min-h-screen bg-white">
+      {/* Promotional Banners */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Batteries Banner */}
+          <div className="bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl p-8 text-white relative overflow-hidden">
+            <div className="relative z-10">
+              <span className="inline-block bg-red-500 text-white text-xs font-bold px-2 py-1 rounded mb-4">
+                Top brands
+              </span>
+              <h2 className="text-3xl font-bold mb-2">BATTERIES</h2>
+              <p className="text-lg mb-6">Stay charged up!</p>
                   <Link 
-                    to={slide.url}
-                    className="inline-block bg-jumia-orange text-white px-6 py-2 rounded-sm text-lg font-medium hover:bg-jumia-orangeDark transition-colors w-max"
+                to="/categories/batteries"
+                className="inline-flex items-center bg-white text-orange-500 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                   >
-                    {slide.cta}
+                Shop now <FiArrowRight className="ml-2" />
                   </Link>
                 </div>
+            <div className="absolute right-0 top-0 h-full w-1/2 bg-contain bg-no-repeat bg-right opacity-20"
+                 style={{backgroundImage: "url('https://images.pexels.com/photos/4480523/pexels-photo-4480523.jpeg?auto=compress&cs=tinysrgb&w=300')"}}></div>
               </div>
+
+          {/* Tires Banner */}
+          <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-8 text-gray-800 relative overflow-hidden">
+            <div className="relative z-10">
+              <span className="inline-block bg-green-500 text-white text-xs font-bold px-2 py-1 rounded mb-4">
+                Buy 3 Get 1 For Free
+              </span>
+              <h2 className="text-3xl font-bold mb-2">TIRES & WHEELS</h2>
+              <p className="text-lg mb-6">Stay safe on road!</p>
+              <Link
+                to="/categories/tires"
+                className="inline-flex items-center bg-gray-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+              >
+                Shop now <FiArrowRight className="ml-2" />
+              </Link>
             </div>
-          ))}
+            <div className="absolute right-0 top-0 h-full w-1/2 bg-contain bg-no-repeat bg-right opacity-20"
+                 style={{backgroundImage: "url('https://images.pexels.com/photos/3752169/pexels-photo-3752169.jpeg?auto=compress&cs=tinysrgb&w=300')"}}></div>
         </div>
-        
-        {/* Carousel Controls */}
-        <button 
-          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-30 hover:bg-opacity-50 text-white p-2 rounded-full z-30"
-          onClick={prevSlide}
-        >
-          <FiChevronLeft size={24} />
-        </button>
-        <button 
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-30 hover:bg-opacity-50 text-white p-2 rounded-full z-30"
-          onClick={nextSlide}
-        >
-          <FiChevronRight size={24} />
-        </button>
-        
-        {/* Dots */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-30">
-          {bannerSlides.map((_, index) => (
-            <button
-              key={index}
-              className={`w-3 h-3 rounded-full ${activeSlide === index ? 'bg-white' : 'bg-white bg-opacity-50'}`}
-              onClick={() => setActiveSlide(index)}
-            />
-          ))}
+        </div>
+      </div>
+      {/* Featured Manufacturers */}
+      <div className="bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">Featured manufacturers</h2>
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-8">
+            {[
+              { name: 'Toyota', logo: 'https://logos-world.net/wp-content/uploads/2020/04/Toyota-Logo.png' },
+              { name: 'Honda', logo: 'https://logos-world.net/wp-content/uploads/2021/03/Honda-Logo.png' },
+              { name: 'Ford', logo: 'https://logos-world.net/wp-content/uploads/2021/03/Ford-Logo.png' },
+              { name: 'BMW', logo: 'https://logos-world.net/wp-content/uploads/2020/04/BMW-Logo.png' },
+              { name: 'Mercedes', logo: 'https://logos-world.net/wp-content/uploads/2020/04/Mercedes-Logo.png' },
+              { name: 'Audi', logo: 'https://logos-world.net/wp-content/uploads/2020/04/Audi-Logo.png' },
+              { name: 'Nissan', logo: 'https://logos-world.net/wp-content/uploads/2020/04/Nissan-Logo.png' },
+              { name: 'Hyundai', logo: 'https://logos-world.net/wp-content/uploads/2021/03/Hyundai-Logo.png' }
+            ].map((brand, index) => (
+              <Link 
+                key={index}
+                to={`/brands/${brand.name.toLowerCase()}`}
+                className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center justify-center"
+              >
+                <img
+                  src={brand.logo}
+                  alt={brand.name}
+                  className="h-8 w-auto object-contain"
+                  onError={(e) => {
+                    e.target.src = `https://via.placeholder.com/120x60/666/fff?text=${brand.name}`;
+                  }}
+                />
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Category Grid - Jumia Style */}
-        <div className="mb-8">
-          <div className="bg-white p-4 rounded-sm mb-2">
-            <h2 className="text-lg font-medium text-neutral-800">Shop by Category</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-            {categories.map((category) => (
-              <Link 
-                key={category.id}
-                to={`/products?category=${encodeURIComponent(category.name)}`}
-                className="flex flex-col items-center bg-white p-4 rounded-sm hover:shadow-md transition-shadow text-center"
-              >
-                <span className="text-3xl mb-2">{category.icon}</span>
-                <h3 className="text-sm font-medium text-neutral-700">{category.name}</h3>
-                <span className="text-xs text-neutral-500">{category.count} products</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      
-        {/* Flash Deals Section - Jumia Style */}
-        <div className="mb-8">
-          <div className="bg-white p-4 rounded-sm mb-2 flex items-center justify-between">
-            <div className="flex items-center">
-              <FiClock className="text-jumia-orange mr-2" size={20} />
-              <h2 className="text-lg font-medium text-neutral-800">Flash Deals</h2>
-            </div>
-            <Link 
-              to="/deals" 
-              className="text-jumia-orange text-sm font-medium flex items-center"
-            >
-              See All <FiChevronRight size={16} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {flashDeals.map((deal, index) => (
-              <div key={deal.id} className="bg-white rounded-sm">
-                <div className="relative">
-                  <div className="absolute top-0 left-0 bg-jumia-orange text-white font-bold px-2 py-1 z-10">
-                    -{deal.discount}%
-                  </div>
-                  <img 
-                    src={deal.image} 
-                    alt={deal.name} 
-                    className="w-full h-40 object-contain p-2" 
-                  />
-                </div>
-                <div className="p-3 border-t border-jumia-lightGray">
-                  {/* Title */}
-                  <h3 className="text-sm font-normal text-neutral-700 line-clamp-2 mb-2">
-                    {deal.name}
-                  </h3>
-                  
-                  {/* Price */}
-                  <div className="mb-2">
-                    <span className="text-jumia-orange font-bold">${deal.price.toFixed(2)}</span>
-                    <span className="text-xs text-neutral-500 line-through ml-1">${deal.oldPrice.toFixed(2)}</span>
-                  </div>
-                  
-                  {/* Countdown */}
-                  <div className="flex items-center mb-2">
-                    <span className="text-xs text-neutral-600 mr-2">Ends in:</span>
-                    <div className="flex space-x-1">
-                      <div className="bg-neutral-800 text-white text-xs font-medium px-1 py-0.5">{formatTime(countdown[index]).hours}</div>
-                      <span className="text-xs">:</span>
-                      <div className="bg-neutral-800 text-white text-xs font-medium px-1 py-0.5">{formatTime(countdown[index]).minutes}</div>
-                      <span className="text-xs">:</span>
-                      <div className="bg-neutral-800 text-white text-xs font-medium px-1 py-0.5">{formatTime(countdown[index]).seconds}</div>
-                    </div>
-                  </div>
-                </div>
-                {/* Add to cart button */}
-                <button 
-                  onClick={() => handleAddToCart(deal.id)}
-                  className="w-full py-2 bg-jumia-orange text-white hover:bg-jumia-orangeDark transition-colors flex items-center justify-center"
-                >
-                  <FiShoppingCart size={16} className="mr-2" />
-                  <span className="text-sm font-medium">ADD TO CART</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      
-        {/* Top Selling Products Section */}
-        <div className="mb-8">
-          <div className="bg-white p-4 rounded-sm mb-2 flex items-center justify-between">
-            <div className="flex items-center">
-              <FiThumbsUp className="text-jumia-orange mr-2" size={20} />
-              <h2 className="text-lg font-medium text-neutral-800">Top Selling Products</h2>
-            </div>
-            <Link 
-              to="/products?sort=popular" 
-              className="text-jumia-orange text-sm font-medium flex items-center"
-            >
-              See All <FiChevronRight size={16} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {featuredProducts.slice(0, 5).map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={handleAddToCart}
-              />
-            ))}
-          </div>
-        </div>
-      
-        {/* Popular Brands Section */}
-        <div className="mb-8">
-          <div className="bg-white p-4 rounded-sm mb-2">
-            <h2 className="text-lg font-medium text-neutral-800">Popular Brands</h2>
-          </div>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            {brands.map((brand) => (
-              <Link 
-                key={brand.id}
-                to={`/products?brand=${encodeURIComponent(brand.name)}`}
-                className="bg-white p-4 rounded-sm hover:shadow-md transition-shadow flex items-center justify-center"
-              >
-                <img 
-                  src={brand.logo} 
-                  alt={brand.name} 
-                  className="max-h-12" 
-                />
-              </Link>
-            ))}
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 py-8">
       
         {/* Featured Products Section */}
+        <div className="mb-12">
         <div className="mb-8">
-          <div className="bg-white p-4 rounded-sm mb-2 flex items-center justify-between">
-            <div className="flex items-center">
-              <FiStar className="text-jumia-orange mr-2" size={20} />
-              <h2 className="text-lg font-medium text-neutral-800">New Arrivals</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Featured products in</h2>
+            <div className="flex items-center justify-center space-x-8 mb-8">
+              <button className="px-6 py-2 border-b-2 border-blue-500 text-blue-500 font-semibold">
+                Engine parts
+              </button>
+              <button className="px-6 py-2 text-gray-500 hover:text-gray-700">
+                Oil & Fluids
+              </button>
+              <button className="px-6 py-2 text-gray-500 hover:text-gray-700">
+                Suspension
+              </button>
             </div>
-            <Link 
-              to="/new-arrivals" 
-              className="text-jumia-orange text-sm font-medium flex items-center"
-            >
-              See All <FiChevronRight size={16} />
-            </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {featuredProducts.filter(p => p.isNew).map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={handleAddToCart}
-              />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            {featuredProducts.slice(0, 6).map((product, index) => (
+              <div key={product.id || index} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+                <div className="relative">
+                  {/* Sale Badge */}
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      Sale
+                    </span>
+                  </div>
+                  
+                  {/* Product Image */}
+                  <div className="h-48 bg-gray-100 flex items-center justify-center">
+                    <img
+                      src={product.image || 'https://via.placeholder.com/200x200/eee/666?text=Product'}
+                      alt={product.name}
+                      className="h-full w-full object-contain p-4"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">
+                    {product.name || `Sample Product ${index + 1}`}
+                  </h3>
+                  
+                  {/* Rating */}
+                  <div className="flex items-center mb-2">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <FiStar
+                          key={i}
+                          size={12}
+                          className={i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-500 ml-1">(4.5)</span>
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="text-red-600 font-bold">
+                        GH₵{product.price?.toFixed(2) || '99.99'}
+                      </span>
+                      {product.oldPrice && (
+                        <span className="text-gray-400 line-through text-sm ml-2">
+                          GH₵{product.oldPrice.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Add to Cart */}
+                  <button
+                    onClick={() => handleAddToCart(product.id)}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center"
+                  >
+                    Add to cart <FiArrowRight className="ml-1" size={12} />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-        
-        {/* Benefits Section */}
-        <div className="mb-8 bg-white p-4 rounded-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center">
-              <div className="bg-jumia-orange/10 p-3 rounded-full mr-4">
-                <FiShield className="text-jumia-orange" size={24} />
+
+        {/* Large Promotional Banner */}
+        <div className="bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl p-12 text-white mb-12 relative overflow-hidden">
+          <div className="relative z-10 max-w-2xl">
+            <span className="inline-block bg-black text-white text-sm font-bold px-3 py-1 rounded mb-4">
+              ONE TIME SPECIAL
+            </span>
+            <h2 className="text-4xl font-bold mb-4">BUYS</h2>
+            <p className="text-xl mb-6">Good Values. Always.</p>
+            <Link 
+              to="/deals"
+              className="inline-flex items-center bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+            >
+              Shop now <FiArrowRight className="ml-2" />
+            </Link>
+          </div>
+          <div className="absolute right-0 top-0 h-full w-1/2 bg-contain bg-no-repeat bg-right opacity-30"
+               style={{backgroundImage: "url('https://images.pexels.com/photos/3752169/pexels-photo-3752169.jpeg?auto=compress&cs=tinysrgb&w=400')"}}></div>
+        </div>
+
+        {/* More to Love Section */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">More to love!</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredProducts.slice(6, 10).map((product, index) => (
+              <div key={product.id || index} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+                <div className="relative">
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 z-10 flex gap-1">
+                    <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      New!
+                    </span>
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      Sale
+                    </span>
+          </div>
+          
+                  {/* Product Image */}
+                  <div className="h-48 bg-gray-100 flex items-center justify-center">
+                    <img
+                      src={product.image || 'https://via.placeholder.com/200x200/eee/666?text=Product'}
+                      alt={product.name}
+                      className="h-full w-full object-contain p-4"
+            />
+          </div>
+        </div>
+
+                <div className="p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">
+                    {product.name || `Quality Auto Part ${index + 1}`}
+                  </h3>
+                  
+                  {/* Rating */}
+                  <div className="flex items-center mb-2">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <FiStar
+                          key={i}
+                          size={12}
+                          className={i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                        />
+                      ))}
+                    </div>
               </div>
-              <div>
-                <h3 className="font-medium text-neutral-800">Warranty Protection</h3>
-                <p className="text-sm text-neutral-600">Quality guaranteed with every purchase</p>
-              </div>
+
+                  {/* Price */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 line-through text-sm">
+                        GH₵{((product.price || 99) * 1.3).toFixed(2)}
+                      </span>
+                      <span className="text-red-600 font-bold">
+                        GH₵{product.price?.toFixed(2) || '99.99'}
+                      </span>
             </div>
-            <div className="flex items-center">
-              <div className="bg-jumia-orange/10 p-3 rounded-full mr-4">
-                <FiTruck className="text-jumia-orange" size={24} />
               </div>
-              <div>
-                <h3 className="font-medium text-neutral-800">Fast Shipping</h3>
-                <p className="text-sm text-neutral-600">Free delivery nationwide on orders over $50</p>
-              </div>
+
+                  {/* Add to Cart */}
+                  <button
+                    onClick={() => handleAddToCart(product.id)}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center"
+                  >
+                    Add to cart <FiArrowRight className="ml-1" size={12} />
+                  </button>
             </div>
-            <div className="flex items-center">
-              <div className="bg-jumia-orange/10 p-3 rounded-full mr-4">
-                <FiTag className="text-jumia-orange" size={24} />
               </div>
-              <div>
-                <h3 className="font-medium text-neutral-800">Best Prices</h3>
-                <p className="text-sm text-neutral-600">Competitive prices on 10,000+ products</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiSmartphone, FiTruck, FiUser, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
-import { PaymentService, CartService, OrderService } from 'autoplus-shared';
+import { PaymentService, CartService, OrderService } from 'Autora-shared';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Checkout = () => {

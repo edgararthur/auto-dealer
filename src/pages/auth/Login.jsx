@@ -19,9 +19,9 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get the return URL from query params
+  // Get the return URL from query params, default to products page for buyers
   const searchParams = new URLSearchParams(location.search);
-  const returnTo = searchParams.get('returnTo') || '/';
+  const returnTo = searchParams.get('returnTo') || '/products';
 
   // Show any global auth errors
   useEffect(() => {
@@ -43,17 +43,26 @@ const Login = () => {
       setStatusMessage('Connecting to authentication service...');
       setIsLoading(true);
       
-      console.log('Login: Starting login attempt...');
+      if (process.env.NODE_ENV === 'development') {
+      
+        console.log('Login: Starting login attempt...');
+  }
       const result = await login(email, password);
-      console.log('Login: Login result', { success: result.success, error: result.error });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Login: Login result', { success: result.success, error: result.error });
+  }
       
       if (result.success) {
         setStatusMessage('Login successful! Redirecting...');
-        console.log('Login: Successful, navigating to', returnTo);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Login: Successful, navigating to', returnTo);
+  }
         // Navigate to the returnTo URL or default to the shop page
         navigate(returnTo);
       } else {
-        console.log('Login: Failed with error', result.error);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Login: Failed with error', result.error);
+  }
         setError(result.error || 'Failed to log in');
         setStatusMessage('');
       }

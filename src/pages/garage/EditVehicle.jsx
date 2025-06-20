@@ -4,7 +4,7 @@ import { FiArrowLeft, FiCheck, FiAlertTriangle } from 'react-icons/fi';
 import { FaCar } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Breadcrumb } from '../../components/common';
-import supabase from '../../../shared/supabase/supabaseClient';
+import supabase from '../../../shared/supabase/supabaseClient.js';
 
 const EditVehicle = () => {
   const navigate = useNavigate();

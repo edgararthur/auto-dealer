@@ -1,300 +1,127 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiClock, FiArrowRight, FiPackage, FiCalendar, FiAlertCircle, FiBell } from 'react-icons/fi';
+import { FiShoppingCart, FiClock, FiArrowRight, FiPackage, FiCalendar, FiAlertCircle, FiBell, FiFilter } from 'react-icons/fi';
 import Breadcrumb from '../../components/common/Breadcrumb';
-
-// Mock data for new arrival products
-const newArrivals = [
-  {
-    id: 201,
-    name: 'Next-Gen Electric Water Pump',
-    category: 'Engine',
-    price: 89.99,
-    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 12,
-    brand: 'GermanTech',
-    daysNew: 3
-  },
-  {
-    id: 202,
-    name: 'Ceramic Brake Pads (Set of 4)',
-    category: 'Brakes',
-    price: 79.99,
-    image: 'https://images.unsplash.com/photo-1588169770457-8bfc2de92556?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 5.0,
-    reviewCount: 8,
-    brand: 'BrakeMaster',
-    daysNew: 5
-  },
-  {
-    id: 203,
-    name: 'Smart Battery Monitor',
-    category: 'Electronics',
-    price: 34.99,
-    image: 'https://images.unsplash.com/photo-1617886322168-72b886573c6c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 15,
-    brand: 'AutoTech',
-    daysNew: 2
-  },
-  {
-    id: 204,
-    name: 'Carbon Fiber Hood Vent',
-    category: 'Exterior',
-    price: 129.99,
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.9,
-    reviewCount: 7,
-    brand: 'RaceTech',
-    daysNew: 1
-  },
-  {
-    id: 205,
-    name: 'Advanced TPMS Sensors (Set of 4)',
-    category: 'Electronics',
-    price: 99.99,
-    image: 'https://images.unsplash.com/photo-1586610724347-e8be08b96264?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 11,
-    brand: 'PressurePro',
-    daysNew: 7
-  },
-  {
-    id: 206,
-    name: 'Eco-Friendly Cabin Air Filter',
-    category: 'Interior',
-    price: 24.99,
-    image: 'https://images.unsplash.com/photo-1489824904134-891ab64532f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 9,
-    brand: 'GreenAir',
-    daysNew: 4
-  },
-  {
-    id: 207,
-    name: 'Ultra-Bright LED Conversion Kit',
-    category: 'Lighting',
-    price: 149.99,
-    image: 'https://images.unsplash.com/photo-1519566657253-e37fbaa3bad6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 5.0,
-    reviewCount: 14,
-    brand: 'LumaTech',
-    daysNew: 6
-  },
-  {
-    id: 208,
-    name: 'Smartphone Car Mount with Wireless Charging',
-    category: 'Accessories',
-    price: 44.99,
-    image: 'https://images.unsplash.com/photo-1583811459920-1c68b59321e5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 18,
-    brand: 'DriveCharge',
-    daysNew: 2
-  }
-];
-
-// Coming soon products
-const comingSoonProducts = [
-  {
-    id: 301,
-    name: 'AI-Powered Engine Diagnostic Tool',
-    category: 'Tools',
-    expectedPrice: 299.99,
-    image: 'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    brand: 'SmartDiag',
-    daysUntilRelease: 14
-  },
-  {
-    id: 302,
-    name: 'Solar-Powered Car Ventilation System',
-    category: 'Electronics',
-    expectedPrice: 79.99,
-    image: 'https://images.unsplash.com/photo-1553260168-69b041873e53?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    brand: 'EcoVent',
-    daysUntilRelease: 7
-  },
-  {
-    id: 303,
-    name: 'Advanced Ceramic Coating Kit',
-    category: 'Detailing',
-    expectedPrice: 149.99,
-    image: 'https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    brand: 'ShieldPro',
-    daysUntilRelease: 21
-  },
-  {
-    id: 304,
-    name: 'Graphene Battery Booster',
-    category: 'Electrical',
-    expectedPrice: 89.99,
-    image: 'https://images.unsplash.com/photo-1573346544140-d9823a0c3d33?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    brand: 'PowerGraph',
-    daysUntilRelease: 30
-  }
-];
-
-const ProductCard = ({ product, onAddToCart }) => {
-  return (
-    <div className="bg-white rounded-lg shadow-card hover:shadow-luxury transition-all duration-300 overflow-hidden relative group border border-neutral-100">
-      {/* New badge */}
-      <div className="absolute top-3 left-3 z-10">
-        <span className="inline-flex items-center px-2.5 py-1.5 rounded-full bg-gradient-to-r from-secondary-600 to-secondary-500 text-white text-xs font-bold shadow-md">
-          NEW
-        </span>
-      </div>
-      
-      {/* Days new badge */}
-      {product.daysNew && (
-        <div className="absolute top-3 right-3 z-10">
-          <span className="inline-flex items-center px-2.5 py-1.5 rounded-full bg-neutral-800 text-white text-xs font-bold shadow-md backdrop-blur-sm">
-            <FiClock className="mr-1" size={12} />
-            {product.daysNew === 1 ? 'Today' : `${product.daysNew}d ago`}
-          </span>
-        </div>
-      )}
-      
-      {/* Product image */}
-      <Link to={`/products/${product.id}`} className="block overflow-hidden relative">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-52 object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/70 via-neutral-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      </Link>
-      
-      {/* Product info */}
-      <div className="p-5 relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-secondary-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-        
-        <div className="text-xs text-neutral-500 mb-2 flex items-center">
-          <span className="font-medium text-primary-600">{product.category}</span>
-          <span className="mx-2 text-neutral-300">•</span>
-          <span className="font-medium text-neutral-700">{product.brand}</span>
-        </div>
-        
-        <Link to={`/products/${product.id}`} className="block mb-3">
-          <h3 className="text-sm font-bold text-neutral-800 hover:text-primary-600 line-clamp-2 transition-colors duration-200">
-            {product.name}
-          </h3>
-        </Link>
-        
-        {product.rating && (
-          <div className="flex items-center mb-3">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <svg
-                  key={i}
-                  className={`w-3.5 h-3.5 ${i < Math.floor(product.rating) ? 'text-gold-400' : 'text-neutral-300'}`}
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <span className="ml-1.5 text-xs text-neutral-500">({product.reviewCount})</span>
-          </div>
-        )}
-        
-        <div className="flex justify-between items-center">
-          {product.price ? (
-            <span className="text-xl font-bold text-neutral-900">${product.price.toFixed(2)}</span>
-          ) : (
-            <span className="text-sm font-medium text-neutral-500">Coming Soon</span>
-          )}
-          
-          <button
-            onClick={() => onAddToCart(product.id)}
-            className="p-2.5 rounded-full bg-neutral-100 text-primary-600 hover:bg-primary-100 transition-colors duration-200 hover:shadow-inner"
-            aria-label="Add to cart"
-          >
-            <FiShoppingCart size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ComingSoonCard = ({ product }) => {
-  return (
-    <div className="bg-white rounded-lg shadow-card hover:shadow-luxury transition-all duration-300 overflow-hidden relative group border border-neutral-100">
-      {/* Coming Soon badge */}
-      <div className="absolute top-3 left-3 z-10">
-        <span className="inline-flex items-center px-2.5 py-1.5 rounded-full bg-gradient-gold text-neutral-900 text-xs font-bold shadow-gold">
-          Coming Soon
-        </span>
-      </div>
-      
-      {/* Days until release badge */}
-      <div className="absolute top-3 right-3 z-10">
-        <span className="inline-flex items-center px-2.5 py-1.5 rounded-full bg-neutral-800 text-white text-xs font-bold shadow-md backdrop-blur-sm">
-          <FiCalendar className="mr-1" size={12} />
-          {product.daysUntilRelease} days
-        </span>
-      </div>
-      
-      {/* Product image with overlay */}
-      <div className="relative">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-52 object-cover filter grayscale-[40%] group-hover:grayscale-0 transition-all duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/70 via-neutral-800/40 to-transparent"></div>
-      </div>
-      
-      {/* Product info */}
-      <div className="p-5 relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-primary-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-        
-        <div className="text-xs text-neutral-500 mb-2 flex items-center">
-          <span className="font-medium text-primary-600">{product.category}</span>
-          <span className="mx-2 text-neutral-300">•</span>
-          <span className="font-medium text-neutral-700">{product.brand}</span>
-        </div>
-        
-        <h3 className="text-sm font-bold text-neutral-800 mb-4 line-clamp-2">
-          {product.name}
-        </h3>
-        
-        <div className="flex justify-between items-center">
-          <div>
-            <span className="text-xs text-neutral-500 block mb-1">Expected Price</span>
-            <span className="text-lg font-bold text-neutral-700">${product.expectedPrice.toFixed(2)}</span>
-          </div>
-          
-          <button
-            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-primary-50 to-primary-100 text-primary-600 rounded-full text-xs font-medium hover:from-primary-100 hover:to-primary-200 transition-colors duration-200"
-          >
-            <FiBell className="mr-1" size={12} />
-            Notify Me
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import ProductService from '../../../shared/services/productService';
+import { useCart } from '../../contexts/CartContext';
+import { ProductCard } from '../../components/common';
 
 const NewArrivals = () => {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const { addToCart } = useCart();
   
+  // Fetch new arrivals and categories from backend
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch recent products (created within last 30 days)
+        const productsResponse = await ProductService.getProducts({
+          sortBy: 'newest',
+          limit: 50,
+          inStock: true
+        });
+        
+        // Fetch categories
+        const categoriesResponse = await ProductService.getCategories();
+        
+        if (productsResponse.success) {
+          // Filter products to show only truly new ones (within last 30 days)
+          const now = new Date();
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          
+          const newProducts = (productsResponse.products || []).filter(product => {
+            const createdDate = new Date(product.created_at);
+            return createdDate >= thirtyDaysAgo;
+          }).map(product => ({
+            ...product,
+            daysNew: Math.ceil((now - new Date(product.created_at)) / (1000 * 60 * 60 * 24)),
+            rating: 4.0 + Math.random() * 1, // Mock rating until we have real reviews
+            reviewCount: Math.floor(Math.random() * 50) + 5 // Mock review count for new products
+          }));
+          
+          setProducts(newProducts);
+          setFilteredProducts(newProducts);
+        } else {
+          setError(productsResponse.error || 'Failed to fetch products');
+        }
+        
+        if (categoriesResponse.success) {
+          // Get unique categories from products
+          const productCategories = [...new Set((productsResponse.products || []).map(p => p.category?.name).filter(Boolean))];
+          setCategories(['All', ...productCategories]);
+        } else {
+          setCategories(['All']);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching new arrivals:', err);
+        setError('Failed to load new arrivals. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+  
+  // Filter products by category
+  useEffect(() => {
+    if (selectedCategory === 'All') {
+      setFilteredProducts(products);
+    } else {
+      setFilteredProducts(products.filter(product => product.category?.name === selectedCategory));
+    }
+  }, [selectedCategory, products]);
+  
+  // Handle adding items to cart
   const handleAddToCart = (productId) => {
-    // In a real implementation, this would add the item to the cart
-    console.log(`Added product ${productId} to cart`);
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      addToCart(productId, 1, { 
+        dealerId: product.dealer?.id,
+        price: product.price 
+      });
+    }
   };
   
-  // Filter products based on selected category
-  const filteredProducts = selectedCategory === 'All'
-    ? newArrivals
-    : newArrivals.filter(product => product.category === selectedCategory);
+  if (loading) {
+    return (
+      <div className="bg-neutral-50 min-h-screen pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary-500 border-r-transparent align-[-0.125em]"></div>
+            <p className="mt-6 text-neutral-600 font-medium">Loading new arrivals...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
-  // Get unique categories from products
-  const categories = ['All', ...new Set(newArrivals.map(product => product.category))];
-  
+  if (error) {
+    return (
+      <div className="bg-neutral-50 min-h-screen pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <p className="text-red-600 font-medium">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-neutral-50 min-h-screen pb-16">
       {/* Page header */}
@@ -320,38 +147,80 @@ const NewArrivals = () => {
             ]}
           />
           
-          <div className="mt-6 mb-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-white font-display mb-3"><span className="text-gold-300">New</span> Arrivals</h1>
+          <div className="mt-6 mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-white font-display mb-3">
+              New <span className="text-secondary-300">Arrivals</span>
+            </h1>
             <p className="text-neutral-200 max-w-2xl">
-              Discover our latest additions to keep your vehicle running at peak performance with cutting-edge automotive technology.
+              Discover the latest auto parts and accessories that have just arrived in our inventory. 
+              Stay ahead with cutting-edge products for your vehicle.
             </p>
+          </div>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-white">{products.length}</div>
+              <div className="text-sm text-neutral-200">New Products</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-white">{categories.length - 1}</div>
+              <div className="text-sm text-neutral-200">Categories</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-white">
+                {products.filter(p => p.daysNew <= 7).length}
+              </div>
+              <div className="text-sm text-neutral-200">This Week</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-white">
+                {products.filter(p => p.daysNew <= 1).length}
+              </div>
+              <div className="text-sm text-neutral-200">Today</div>
+            </div>
           </div>
         </div>
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Category filters */}
-        <div className="mb-8 flex flex-wrap gap-2 bg-white p-4 rounded-lg shadow-sm border border-neutral-100">
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                selectedCategory === category
-                  ? 'bg-gradient-to-r from-secondary-600 to-secondary-500 text-white shadow-md transform scale-105'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200 hover:border-secondary-300'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
+        {categories.length > 1 && (
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <FiFilter className="text-secondary-600 mr-2" size={18} />
+              <h3 className="text-lg font-medium text-neutral-900">Filter by Category</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    selectedCategory === category
+                      ? 'bg-secondary-600 text-white shadow-md'
+                      : 'bg-white text-neutral-700 hover:bg-secondary-50 hover:text-secondary-700 border border-neutral-200'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         
-        {/* Featured new arrivals section */}
+        {/* Products section */}
         <section className="mb-16">
           <div className="flex items-center mb-6">
             <FiPackage className="text-secondary-600 mr-2" size={22} />
-            <h2 className="text-2xl font-bold text-neutral-900 font-display">Latest <span className="text-secondary-600">Arrivals</span></h2>
+            <h2 className="text-2xl font-bold text-neutral-900 font-display">
+              Latest <span className="text-secondary-600">Arrivals</span>
+            </h2>
+            {selectedCategory !== 'All' && (
+              <span className="ml-3 px-3 py-1 bg-secondary-100 text-secondary-700 rounded-full text-sm">
+                {filteredProducts.length} products in {selectedCategory}
+              </span>
+            )}
           </div>
           
           {filteredProducts.length > 0 ? (
@@ -359,8 +228,14 @@ const NewArrivals = () => {
               {filteredProducts.map(product => (
                 <ProductCard
                   key={product.id}
-                  product={product}
+                  product={{
+                    ...product,
+                    // Add "NEW" badge for products less than 7 days old
+                    isNew: product.daysNew <= 7,
+                    tags: product.daysNew <= 7 ? ['NEW'] : []
+                  }}
                   onAddToCart={handleAddToCart}
+                  showQuickActions={true}
                 />
               ))}
             </div>
@@ -368,43 +243,79 @@ const NewArrivals = () => {
             <div className="bg-white rounded-lg shadow-luxury p-8 text-center border border-neutral-100">
               <FiAlertCircle className="mx-auto h-12 w-12 text-neutral-400 mb-4" />
               <h3 className="text-lg font-medium text-neutral-900 mb-2">No products found</h3>
-              <p className="text-neutral-600">There are no new arrivals in this category yet.</p>
+              <p className="text-neutral-600">
+                {selectedCategory === 'All' 
+                  ? 'No new arrivals at the moment. Check back soon for the latest products!'
+                  : `No new arrivals in the ${selectedCategory} category yet.`
+                }
+              </p>
+              {selectedCategory !== 'All' && (
+                <button
+                  onClick={() => setSelectedCategory('All')}
+                  className="mt-4 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
+                >
+                  View All New Arrivals
+                </button>
+              )}
             </div>
           )}
         </section>
         
-        {/* Coming soon section */}
+        {/* Coming soon section - Dynamic placeholder */}
         <section className="mb-16">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <FiCalendar className="text-primary-600 mr-2" size={22} />
-              <h2 className="text-2xl font-bold text-neutral-900 font-display">Coming <span className="text-gold-500">Soon</span></h2>
-            </div>
-            
-            <Link to="/upcoming-releases" className="text-primary-600 hover:text-primary-700 flex items-center font-medium group">
-              View All <FiArrowRight className="ml-1 group-hover:translate-x-1 transition-transform duration-300" />
-            </Link>
+          <div className="flex items-center mb-6">
+            <FiBell className="text-gold-500 mr-2" size={22} />
+            <h2 className="text-2xl font-bold text-neutral-900 font-display">
+              Coming <span className="text-gold-500">Soon</span>
+            </h2>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {comingSoonProducts.map(product => (
-              <ComingSoonCard key={product.id} product={product} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Placeholder coming soon items */}
+            {[1, 2, 3, 4].map((item, index) => (
+              <div key={item} className="bg-white rounded-lg shadow-card border border-neutral-100 overflow-hidden">
+                <div className="relative">
+                  <img
+                    src={`https://images.unsplash.com/photo-${1581092918056 + index}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80`}
+                    alt="Coming Soon"
+                    className="w-full h-52 object-cover"
+                  />
+                  <div className="absolute inset-0 bg-neutral-900/60 flex items-center justify-center">
+                    <div className="text-center">
+                      <FiClock className="mx-auto text-white mb-2" size={24} />
+                      <p className="text-white font-medium">Coming Soon</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <h3 className="font-bold text-neutral-800 mb-2">New Product Category</h3>
+                  <p className="text-sm text-neutral-600 mb-3">
+                    Exciting new auto parts are on their way. Stay tuned for updates!
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-500">Expected Soon</span>
+                    <button className="px-3 py-1 bg-gold-100 text-gold-700 rounded-md text-sm font-medium">
+                      Notify Me
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </section>
         
-        {/* Notification sign-up */}
-        <div className="bg-gradient-to-r from-secondary-900 to-secondary-800 rounded-xl p-8 shadow-luxury overflow-hidden relative">
+        {/* Newsletter signup */}
+        <section className="bg-gradient-to-r from-secondary-800 to-secondary-900 rounded-xl p-6 md:p-8 shadow-luxury overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-radial from-secondary-300/20 to-transparent opacity-60"></div>
-          <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-primary-500/10 backdrop-blur-xl"></div>
-          <div className="absolute top-1/3 right-1/4 w-6 h-6 rounded-full bg-gold-400/30 backdrop-blur-sm"></div>
-          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 rounded-full bg-secondary-400/20 backdrop-blur-sm"></div>
+          <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-gold-400/10 backdrop-blur-xl"></div>
           
-          <div className="relative flex flex-col md:flex-row items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between relative">
             <div className="mb-6 md:mb-0 md:max-w-md">
-              <h3 className="text-xl font-bold text-white mb-3 font-display">Never Miss <span className="text-gold-300">New Products</span></h3>
-              <p className="text-neutral-200 mb-0">
-                Sign up for notifications about new arrivals and upcoming releases. Be the first to know when exciting products are available.
+              <h3 className="text-xl font-bold text-white font-display mb-2">
+                Be First to Know About <span className="text-secondary-300">New Arrivals</span>
+              </h3>
+              <p className="text-neutral-200">
+                Subscribe to get notifications when new products arrive in our inventory.
               </p>
             </div>
             
@@ -417,14 +328,14 @@ const NewArrivals = () => {
                 />
                 <button
                   type="submit"
-                  className="bg-gradient-gold text-neutral-900 px-4 py-3 rounded-r-lg font-medium hover:opacity-90 transition-opacity whitespace-nowrap shadow-gold"
+                  className="bg-secondary-600 text-white px-4 py-3 rounded-r-lg font-medium hover:bg-secondary-700 transition-colors whitespace-nowrap"
                 >
                   Subscribe
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

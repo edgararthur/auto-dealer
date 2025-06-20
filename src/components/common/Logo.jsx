@@ -38,7 +38,7 @@ const Logo = ({ size = 'medium', variant = 'default' }) => {
         />
       </svg>
       <span className={`ml-2 font-bold text-xl ${textColor}`}>
-        Auto<span className={accentColor}>Plus</span>
+        Auto<span className={accentColor}>ra</span>
       </span>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { OrderService, PaymentService, CartService } from 'autoplus-shared';
+import { OrderService, PaymentService, CartService } from 'Autora-shared';
 
 const Checkout = ({ userId }) => {
   const navigate = useNavigate();

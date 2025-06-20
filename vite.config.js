@@ -13,14 +13,61 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
-    server: {
-      port: 3001,
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        'autoplus-shared': sharedPath
+        'Autora-shared': sharedPath
       },
     },
+    build: {
+      // PERFORMANCE OPTIMIZATION: Code splitting configuration
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vendor chunk for React and core libraries
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            
+            // Supabase and auth chunk
+            supabase: ['@supabase/supabase-js'],
+            
+            // Icons chunk (usually large)
+            icons: ['react-icons']
+          }
+        }
+      },
+      
+      // Optimize chunk size warnings
+      chunkSizeWarningLimit: 500,
+      
+      // Enable source maps for production debugging (optional)
+      sourcemap: false,
+      
+      // Minify for production
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true, // Remove console.logs in production
+          drop_debugger: true
+        }
+      }
+    },
+    
+    // Development server optimization
+    server: {
+      port: 3001,
+      open: true,
+      cors: true
+    },
+    
+    // Performance optimizations
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@supabase/supabase-js',
+        'react-icons'
+      ]
+    }
   };
 }); 

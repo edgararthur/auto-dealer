@@ -14,7 +14,7 @@ import { useMaintenanceReminders } from '../../contexts/MaintenanceRemindersCont
 import { useAuth } from '../../contexts/AuthContext';
 import { Breadcrumb, Button, EmptyState } from '../../components/common';
 import MaintenanceReminders from '../../components/maintenance/MaintenanceReminders';
-import supabase from '../../../shared/supabase/supabaseClient';
+import supabase from '../../../shared/supabase/supabaseClient.js';
 
 const MaintenanceDashboard = () => {
   const navigate = useNavigate();

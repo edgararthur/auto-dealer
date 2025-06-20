@@ -1,105 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  FiFilter, 
-  FiSearch, 
-  FiChevronRight, 
+  FiShoppingBag, 
   FiPackage, 
   FiTruck, 
   FiCheck, 
-  FiAlertCircle,
-  FiCalendar,
-  FiClock,
-  FiShoppingBag,
-  FiMoreHorizontal,
-  FiArrowRight
+  FiAlertCircle, 
+  FiSearch, 
+  FiFilter, 
+  FiCalendar, 
+  FiChevronRight, 
+  FiClock, 
+  FiMoreHorizontal, 
+  FiArrowRight 
 } from 'react-icons/fi';
 import { FaCreditCard } from 'react-icons/fa';
+import OrderService from '../../../shared/services/orderService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const OrderHistory = () => {
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
 
-  // Fetch orders
+  // Fetch orders on component mount
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockOrders = [
-        {
-          id: 'ORD-1234',
-          date: '2023-04-10',
-          total: 342.99,
-          status: 'delivered',
-          paymentMethod: 'Credit Card',
-          trackingNumber: 'TRK9876543210',
-          estimatedDelivery: '2023-04-15',
-          items: [
-            { id: 1, name: 'LED Headlight Kit', quantity: 1, price: 129.99, image: 'https://images.unsplash.com/photo-1563469718703-68f019679252?q=80&w=100&auto=format&fit=crop' },
-            { id: 2, name: 'Premium Brake Pads', quantity: 2, price: 89.50, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=100&auto=format&fit=crop' },
-            { id: 3, name: 'Oil Filter', quantity: 1, price: 34.00, image: 'https://images.unsplash.com/photo-1580974511812-5d4831a437ef?q=80&w=100&auto=format&fit=crop' }
-          ]
-        },
-        {
-          id: 'ORD-1185',
-          date: '2023-03-22',
-          total: 127.50,
-          status: 'shipped',
-          paymentMethod: 'PayPal',
-          trackingNumber: 'TRK7654321098',
-          estimatedDelivery: '2023-03-28',
-          items: [
-            { id: 4, name: 'Spark Plugs Set', quantity: 1, price: 45.00, image: 'https://images.unsplash.com/photo-1520586674644-b182b842a122?q=80&w=100&auto=format&fit=crop' },
-            { id: 5, name: 'Air Filter', quantity: 1, price: 27.50, image: 'https://images.unsplash.com/photo-1639510305461-ce868681ca6a?q=80&w=100&auto=format&fit=crop' },
-            { id: 6, name: 'Wiper Blades', quantity: 1, price: 55.00, image: 'https://images.unsplash.com/photo-1606577924006-27d39b001c6c?q=80&w=100&auto=format&fit=crop' }
-          ]
-        },
-        {
-          id: 'ORD-1089',
-          date: '2023-02-15',
-          total: 89.99,
-          status: 'processing',
-          paymentMethod: 'Debit Card',
-          items: [
-            { id: 7, name: 'Car Battery', quantity: 1, price: 89.99, image: 'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?q=80&w=100&auto=format&fit=crop' }
-          ]
-        },
-        {
-          id: 'ORD-987',
-          date: '2023-01-30',
-          total: 205.75,
-          status: 'delivered',
-          paymentMethod: 'Credit Card',
-          trackingNumber: 'TRK5432109876',
-          estimatedDelivery: '2023-02-05',
-          items: [
-            { id: 8, name: 'Floor Mats', quantity: 1, price: 45.75, image: 'https://images.unsplash.com/photo-1614100007786-73fa6202cfa7?q=80&w=100&auto=format&fit=crop' },
-            { id: 9, name: 'Car Cover', quantity: 1, price: 160.00, image: 'https://images.unsplash.com/photo-1600448633284-a1fbfd7b8494?q=80&w=100&auto=format&fit=crop' }
-          ]
-        },
-        {
-          id: 'ORD-945',
-          date: '2023-01-15',
-          total: 78.50,
-          status: 'cancelled',
-          paymentMethod: 'PayPal',
-          items: [
-            { id: 10, name: 'Phone Mount', quantity: 1, price: 24.50, image: 'https://images.unsplash.com/photo-1639750154390-a3fa962ae0ee?q=80&w=100&auto=format&fit=crop' },
-            { id: 11, name: 'Car Charger', quantity: 1, price: 19.00, image: 'https://images.unsplash.com/photo-1600064430264-9b9e2e5f9adf?q=80&w=100&auto=format&fit=crop' },
-            { id: 12, name: 'Steering Wheel Cover', quantity: 1, price: 35.00, image: 'https://images.unsplash.com/photo-1588686823358-97ab76e2bf9e?q=80&w=100&auto=format&fit=crop' }
-          ]
+    const fetchOrders = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        const response = await OrderService.getUserOrders(user.id, {
+          limit: 50, // Get recent orders
+          offset: 0
+        });
+        
+        if (response.success) {
+          setOrders(response.orders || []);
+          setFilteredOrders(response.orders || []);
+        } else {
+          setError(response.error || 'Failed to fetch orders');
         }
-      ];
-      
-      setOrders(mockOrders);
-      setFilteredOrders(mockOrders);
-      setLoading(false);
-    }, 1000);
-  }, []);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        setError('Failed to load orders. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user?.id]);
 
   // Filter orders based on search, status filter, and time filter
   useEffect(() => {
@@ -122,7 +83,7 @@ const OrderHistory = () => {
         sixMonthsAgo.setMonth(now.getMonth() - 6);
         
         filtered = filtered.filter(order => {
-          const orderDate = new Date(order.date);
+          const orderDate = new Date(order.created_at);
           if (timeFilter === 'last-month') {
             return orderDate >= monthAgo;
           } else if (timeFilter === 'last-3-months') {
@@ -139,8 +100,9 @@ const OrderHistory = () => {
         const searchLower = search.toLowerCase();
         filtered = filtered.filter(
           order => 
-            order.id.toLowerCase().includes(searchLower) || 
-            order.items.some(item => item.name.toLowerCase().includes(searchLower))
+            order.order_number?.toLowerCase().includes(searchLower) || 
+            order.id.toLowerCase().includes(searchLower) ||
+            order.items?.some(item => item.product_name?.toLowerCase().includes(searchLower))
         );
       }
       
@@ -157,12 +119,15 @@ const OrderHistory = () => {
   // Get status icon
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'processing':
+      case 'pending':
+      case 'confirmed':
         return <FiPackage className="h-5 w-5 text-amber-500" />;
       case 'shipped':
+      case 'in_transit':
         return <FiTruck className="h-5 w-5 text-blue-500" />;
       case 'delivered':
         return <FiCheck className="h-5 w-5 text-emerald-500" />;
+      case 'canceled':
       case 'cancelled':
         return <FiAlertCircle className="h-5 w-5 text-rose-500" />;
       default:
@@ -173,12 +138,15 @@ const OrderHistory = () => {
   // Get status badge class
   const getStatusBadgeClass = (status) => {
     switch (status) {
-      case 'processing':
+      case 'pending':
+      case 'confirmed':
         return 'bg-amber-100 text-amber-800 border border-amber-200';
       case 'shipped':
+      case 'in_transit':
         return 'bg-blue-100 text-blue-800 border border-blue-200';
       case 'delivered':
         return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+      case 'canceled':
       case 'cancelled':
         return 'bg-rose-100 text-rose-800 border border-rose-200';
       default:
@@ -188,7 +156,7 @@ const OrderHistory = () => {
 
   // Get payment method icon
   const getPaymentMethodIcon = (method) => {
-    if (method.toLowerCase().includes('credit') || method.toLowerCase().includes('debit')) {
+    if (method?.toLowerCase().includes('credit') || method?.toLowerCase().includes('debit') || method?.toLowerCase().includes('card')) {
       return <FaCreditCard className="h-4 w-4 text-purple-500" />;
     }
     return <FiShoppingBag className="h-4 w-4 text-indigo-500" />;
@@ -208,7 +176,39 @@ const OrderHistory = () => {
       <div className="min-h-[60vh] flex items-center justify-center p-12 bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary-500 border-r-transparent align-[-0.125em]"></div>
-          <p className="mt-6 text-neutral-600 font-medium">Loading your prestigious order history...</p>
+          <p className="mt-6 text-neutral-600 font-medium">Loading your order history...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-12 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <p className="text-red-600 font-medium">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-12 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <p className="text-neutral-600 font-medium">Please log in to view your order history.</p>
+          <Link 
+            to="/login" 
+            className="mt-4 inline-block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Log In
+          </Link>
         </div>
       </div>
     );
@@ -260,7 +260,7 @@ const OrderHistory = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">In Transit</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {orders.filter(o => o.status === 'shipped' || o.status === 'processing').length}
+                {orders.filter(o => ['shipped', 'in_transit', 'pending', 'confirmed'].includes(o.status)).length}
               </h3>
             </div>
           </div>
@@ -274,7 +274,7 @@ const OrderHistory = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Spent</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                GH₵{orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+                ${orders.reduce((sum, order) => sum + (order.total_amount || 0), 0).toFixed(2)}
               </h3>
             </div>
           </div>
@@ -316,10 +316,12 @@ const OrderHistory = () => {
                 onChange={(e) => setFilter(e.target.value)}
               >
                 <option value="all">All Statuses</option>
-                <option value="processing">Processing</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
                 <option value="shipped">Shipped</option>
+                <option value="in_transit">In Transit</option>
                 <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="canceled">Cancelled</option>
               </select>
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <FiChevronRight className="h-5 w-5 text-gray-400 transform rotate-90" />
@@ -363,18 +365,18 @@ const OrderHistory = () => {
               <div className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center">
                   <div className={`p-3 rounded-lg ${
-                    order.status === 'processing' ? 'bg-amber-50' :
-                    order.status === 'shipped' ? 'bg-blue-50' :
+                    ['pending', 'confirmed'].includes(order.status) ? 'bg-amber-50' :
+                    ['shipped', 'in_transit'].includes(order.status) ? 'bg-blue-50' :
                     order.status === 'delivered' ? 'bg-emerald-50' :
                     'bg-rose-50'
                   }`}>
                     {getStatusIcon(order.status)}
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{order.id}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{order.order_number || order.id}</h3>
                     <div className="flex items-center mt-1 text-sm text-gray-500">
                       <FiClock className="mr-1 h-3 w-3" />
-                      <span>{formatDate(order.date)}</span>
+                      <span>{formatDate(order.created_at)}</span>
                     </div>
                   </div>
                 </div>
@@ -382,13 +384,13 @@ const OrderHistory = () => {
                 <div className="flex items-center">
                   <div className="mr-6">
                     <span className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${getStatusBadgeClass(order.status)}`}>
-                      {order.status}
+                      {order.status.replace('_', ' ')}
                     </span>
                   </div>
                   
                   <div className="mr-6 text-right">
                     <p className="text-sm text-gray-500">Total</p>
-                    <p className="text-lg font-bold text-gray-900">GH₵{order.total.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-gray-900">${order.total_amount?.toFixed(2) || '0.00'}</p>
                   </div>
                   
                   <button
@@ -407,54 +409,64 @@ const OrderHistory = () => {
                 <div className="border-t border-gray-100 p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Payment Method</p>
+                      <p className="text-sm font-medium text-gray-500">Payment Status</p>
                       <div className="flex items-center mt-1">
-                        {getPaymentMethodIcon(order.paymentMethod)}
-                        <span className="ml-2 font-medium text-gray-900">{order.paymentMethod}</span>
+                        {getPaymentMethodIcon(order.payment_method)}
+                        <span className="ml-2 font-medium text-gray-900 capitalize">
+                          {order.payment_status || 'Pending'}
+                        </span>
                       </div>
                     </div>
                     
-                    {order.trackingNumber && (
+                    {order.tracking_number && (
                       <div>
                         <p className="text-sm font-medium text-gray-500">Tracking Number</p>
-                        <p className="font-medium text-gray-900 mt-1">{order.trackingNumber}</p>
+                        <p className="font-medium text-gray-900 mt-1">{order.tracking_number}</p>
                       </div>
                     )}
                     
-                    {order.estimatedDelivery && (
+                    {order.shipping_status && (
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Estimated Delivery</p>
-                        <p className="font-medium text-gray-900 mt-1">{formatDate(order.estimatedDelivery)}</p>
+                        <p className="text-sm font-medium text-gray-500">Shipping Status</p>
+                        <p className="font-medium text-gray-900 mt-1 capitalize">{order.shipping_status.replace('_', ' ')}</p>
                       </div>
                     )}
                     
                     <div>
                       <p className="text-sm font-medium text-gray-500">Items</p>
-                      <p className="font-medium text-gray-900 mt-1">{order.items.length} product{order.items.length !== 1 ? 's' : ''}</p>
+                      <p className="font-medium text-gray-900 mt-1">{order.items_count || order.items?.length || 0} product{(order.items_count || order.items?.length || 0) !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   
                   {/* Order items */}
-                  <h4 className="font-medium text-gray-900 mb-4">Order Items</h4>
-                  <div className="space-y-4">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex items-center py-3 border-b border-gray-100 last:border-b-0">
-                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                          <img src={item.image} alt={item.name} className="h-full w-full object-cover object-center" />
-                        </div>
-                        <div className="ml-4 flex-1">
-                          <h5 className="font-medium text-gray-900">{item.name}</h5>
-                          <p className="mt-1 text-sm text-gray-500">Qty: {item.quantity}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">GH₵{item.price.toFixed(2)}</p>
-                          <p className="mt-1 text-sm text-gray-500">
-                            GH₵{(item.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
+                  {order.items && order.items.length > 0 && (
+                    <>
+                      <h4 className="font-medium text-gray-900 mb-4">Order Items</h4>
+                      <div className="space-y-4">
+                        {order.items.map((item) => (
+                          <div key={item.id} className="flex items-center py-3 border-b border-gray-100 last:border-b-0">
+                            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                              <img 
+                                src={item.thumbnail || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&h=100&q=80'} 
+                                alt={item.product_name} 
+                                className="h-full w-full object-cover object-center" 
+                              />
+                            </div>
+                            <div className="ml-4 flex-1">
+                              <h5 className="font-medium text-gray-900">{item.product_name}</h5>
+                              <p className="mt-1 text-sm text-gray-500">Qty: {item.quantity}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-900">${item.unit_price?.toFixed(2) || '0.00'}</p>
+                              <p className="mt-1 text-sm text-gray-500">
+                                ${(item.total_price || (item.unit_price * item.quantity) || 0).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  )}
                   
                   <div className="flex justify-end mt-6">
                     <Link
@@ -473,18 +485,22 @@ const OrderHistory = () => {
                 expandedOrder === order.id ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100'
               }`}>
                 <div className="flex items-center space-x-2">
-                  {order.items.slice(0, 3).map((item) => (
+                  {order.items && order.items.slice(0, 3).map((item) => (
                     <div key={item.id} className="h-8 w-8 rounded-full overflow-hidden border border-gray-200">
-                      <img src={item.image} alt={item.name} className="h-full w-full object-cover object-center" />
+                      <img 
+                        src={item.thumbnail || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&h=100&q=80'} 
+                        alt={item.product_name} 
+                        className="h-full w-full object-cover object-center" 
+                      />
                     </div>
                   ))}
-                  {order.items.length > 3 && (
+                  {order.items && order.items.length > 3 && (
                     <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500">
                       +{order.items.length - 3}
                     </div>
                   )}
                   <span className="text-sm text-gray-500 ml-2">
-                    {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                    {order.items_count || order.items?.length || 0} item{(order.items_count || order.items?.length || 0) !== 1 ? 's' : ''}
                   </span>
                 </div>
                 
@@ -528,12 +544,18 @@ const OrderHistory = () => {
       <style>
         {`
           @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
           
           .animate-fade-in {
-            animation: fade-in 0.5s ease-out forwards;
+            animation: fade-in 0.6s ease-out forwards;
           }
         `}
       </style>

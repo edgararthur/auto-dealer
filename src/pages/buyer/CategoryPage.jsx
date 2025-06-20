@@ -2,225 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiFilter, FiShoppingCart, FiChevronRight, FiBox, FiStar, FiLayers } from 'react-icons/fi';
 import Breadcrumb from '../../components/common/Breadcrumb';
-
-// Import mock data from StoreHeader
-const categories = [
-  {
-    name: 'Engine Parts',
-    icon: <FiBox />,
-    subcategories: ['Oil Filters', 'Air Filters', 'Spark Plugs', 'Fuel Pumps'],
-    image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&h=500&q=80',
-    description: 'Discover high-quality engine parts designed for optimal performance and durability for your vehicle.'
-  },
-  {
-    name: 'Brakes & Suspension',
-    icon: <FiBox />,
-    subcategories: ['Brake Pads', 'Shock Absorbers', 'Coil Springs', 'Struts'],
-    image: 'https://images.unsplash.com/photo-1588169770457-8bfc2de92556?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&h=500&q=80',
-    description: 'Premium braking and suspension components that provide safety, control, and a smooth ride.'
-  },
-  {
-    name: 'Lighting & Electrical',
-    icon: <FiBox />,
-    subcategories: ['Headlights', 'Taillights', 'Batteries', 'Alternators'],
-    image: 'https://images.unsplash.com/photo-1519642751034-765dfdf7c58e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&h=500&q=80',
-    description: 'Upgrade your vehicle with our range of lighting solutions and electrical components for enhanced visibility and performance.'
-  },
-  {
-    name: 'Interior Accessories',
-    icon: <FiBox />,
-    subcategories: ['Floor Mats', 'Seat Covers', 'Steering Wheels', 'Dashboard Accessories'],
-    image: 'https://images.unsplash.com/photo-1547038577-da80abbc4f19?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&h=500&q=80',
-    description: 'Enhance your driving experience with our stylish and functional interior accessories.'
-  }
-];
-
-// Mock products data based on categories (in a real application, this would come from an API)
-const mockProducts = [
-  // Engine Parts
-  {
-    id: 101,
-    name: 'Premium Oil Filter',
-    category: 'Engine Parts',
-    subcategory: 'Oil Filters',
-    price: 12.99,
-    image: 'https://images.unsplash.com/photo-1635270364846-5e3190b48026?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 125,
-    brand: 'Bosch'
-  },
-  {
-    id: 102,
-    name: 'High-Flow Air Filter',
-    category: 'Engine Parts',
-    subcategory: 'Air Filters',
-    price: 24.99,
-    image: 'https://images.unsplash.com/photo-1516733968668-dbdce39c4651?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 97,
-    brand: 'K&N'
-  },
-  {
-    id: 103,
-    name: 'Iridium Spark Plugs (Set of 4)',
-    category: 'Engine Parts',
-    subcategory: 'Spark Plugs',
-    price: 32.99,
-    image: 'https://images.unsplash.com/photo-1563299796-17596ed6b017?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.9,
-    reviewCount: 213,
-    brand: 'NGK'
-  },
-  {
-    id: 104,
-    name: 'Electric Fuel Pump Assembly',
-    category: 'Engine Parts',
-    subcategory: 'Fuel Pumps',
-    price: 89.99,
-    image: 'https://images.unsplash.com/photo-1590759668628-05b0fc3b8cbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 78,
-    brand: 'Denso'
-  },
-
-  // Brakes & Suspension
-  {
-    id: 201,
-    name: 'Ceramic Brake Pads (Front Set)',
-    category: 'Brakes & Suspension',
-    subcategory: 'Brake Pads',
-    price: 49.99,
-    image: 'https://images.unsplash.com/photo-1588169770457-8bfc2de92556?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 182,
-    brand: 'Brembo'
-  },
-  {
-    id: 202,
-    name: 'Gas-Charged Shock Absorbers (Pair)',
-    category: 'Brakes & Suspension',
-    subcategory: 'Shock Absorbers',
-    price: 119.99,
-    image: 'https://images.unsplash.com/photo-1482575832494-771f74bf6857?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 95,
-    brand: 'Bilstein'
-  },
-  {
-    id: 203,
-    name: 'Performance Coil Springs (Set of 4)',
-    category: 'Brakes & Suspension',
-    subcategory: 'Coil Springs',
-    price: 189.99,
-    image: 'https://images.unsplash.com/photo-1600623586346-47f5219f1f4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 67,
-    brand: 'Eibach'
-  },
-  {
-    id: 204,
-    name: 'Quick-Install Strut Assembly',
-    category: 'Brakes & Suspension',
-    subcategory: 'Struts',
-    price: 159.99,
-    image: 'https://images.unsplash.com/photo-1504222490345-c075b6008014?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 113,
-    brand: 'Monroe'
-  },
-
-  // Lighting & Electrical
-  {
-    id: 301,
-    name: 'LED Headlight Conversion Kit',
-    category: 'Lighting & Electrical',
-    subcategory: 'Headlights',
-    price: 129.99,
-    image: 'https://images.unsplash.com/photo-1519642751034-765dfdf7c58e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 156,
-    brand: 'PIAA'
-  },
-  {
-    id: 302,
-    name: 'Sequential LED Tail Lights',
-    category: 'Lighting & Electrical',
-    subcategory: 'Taillights',
-    price: 199.99,
-    image: 'https://images.unsplash.com/photo-1621285853634-713b8d701a33?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.9,
-    reviewCount: 87,
-    brand: 'Spyder'
-  },
-  {
-    id: 303,
-    name: 'AGM Performance Battery',
-    category: 'Lighting & Electrical',
-    subcategory: 'Batteries',
-    price: 169.99,
-    image: 'https://images.unsplash.com/photo-1565689157206-0fddef7589a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 228,
-    brand: 'Optima'
-  },
-  {
-    id: 304,
-    name: 'High Output Alternator (180A)',
-    category: 'Lighting & Electrical',
-    subcategory: 'Alternators',
-    price: 249.99,
-    image: 'https://images.unsplash.com/photo-1580274455191-1c62238fa333?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 73,
-    brand: 'Denso'
-  },
-
-  // Interior Accessories
-  {
-    id: 401,
-    name: 'All-Weather Floor Mats (Set of 4)',
-    category: 'Interior Accessories',
-    subcategory: 'Floor Mats',
-    price: 89.99,
-    image: 'https://images.unsplash.com/photo-1582639510494-c80b5de9f148?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.9,
-    reviewCount: 315,
-    brand: 'WeatherTech'
-  },
-  {
-    id: 402,
-    name: 'Premium Leather Seat Covers',
-    category: 'Interior Accessories',
-    subcategory: 'Seat Covers',
-    price: 199.99,
-    image: 'https://images.unsplash.com/photo-1603811478698-7844d66faf0b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.7,
-    reviewCount: 126,
-    brand: 'Covercraft'
-  },
-  {
-    id: 403,
-    name: 'Sport Leather Steering Wheel Cover',
-    category: 'Interior Accessories',
-    subcategory: 'Steering Wheels',
-    price: 39.99,
-    image: 'https://images.unsplash.com/photo-1547038577-da80abbc4f19?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.6,
-    reviewCount: 84,
-    brand: 'Momo'
-  },
-  {
-    id: 404,
-    name: 'Digital Dashboard Display System',
-    category: 'Interior Accessories',
-    subcategory: 'Dashboard Accessories',
-    price: 299.99,
-    image: 'https://images.unsplash.com/photo-1494905998402-395d579af36f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
-    rating: 4.8,
-    reviewCount: 58,
-    brand: 'AutoGauge'
-  }
-];
+import ProductService from '../../../shared/services/productService';
+import { useCart } from '../../contexts/CartContext';
 
 const ProductCard = ({ product, onAddToCart }) => {
   return (
@@ -228,7 +11,7 @@ const ProductCard = ({ product, onAddToCart }) => {
       {/* Product image */}
       <Link to={`/products/${product.id}`} className="block overflow-hidden relative">
         <img
-          src={product.image}
+          src={product.product_images?.[0]?.url || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80'}
           alt={product.name}
           className="w-full h-52 object-cover transition-transform duration-500 group-hover:scale-105"
         />
@@ -240,9 +23,9 @@ const ProductCard = ({ product, onAddToCart }) => {
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-radial from-primary-50/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         
         <div className="text-xs text-neutral-500 mb-2 flex items-center">
-          <span className="font-medium text-primary-600">{product.subcategory}</span>
+          <span className="font-medium text-primary-600">{product.subcategory?.name || product.category?.name}</span>
           <span className="mx-2 text-neutral-300">•</span>
-          <span className="font-medium text-neutral-700">{product.brand}</span>
+          <span className="font-medium text-neutral-700">{product.dealer?.company_name || product.dealer?.name || 'Unknown Brand'}</span>
         </div>
         
         <Link to={`/products/${product.id}`} className="block mb-3">
@@ -256,7 +39,7 @@ const ProductCard = ({ product, onAddToCart }) => {
             {[...Array(5)].map((_, i) => (
               <svg
                 key={i}
-                className={`w-3.5 h-3.5 ${i < Math.floor(product.rating) ? 'text-gold-400' : 'text-neutral-300'}`}
+                className={`w-3.5 h-3.5 ${i < 4 ? 'text-gold-400' : 'text-neutral-300'}`}
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -264,7 +47,7 @@ const ProductCard = ({ product, onAddToCart }) => {
               </svg>
             ))}
           </div>
-          <span className="ml-1.5 text-xs text-neutral-500">({product.reviewCount})</span>
+          <span className="ml-1.5 text-xs text-neutral-500">({product.reviews?.length || 0})</span>
         </div>
         
         <div className="flex justify-between items-center">
@@ -288,29 +71,76 @@ const CategoryPage = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState('All');
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { addToCart } = useCart();
 
   useEffect(() => {
-    // Find the category from the slug
-    const formattedCategorySlug = categorySlug.replace(/-/g, ' ');
-    const foundCategory = categories.find(
-      cat => cat.name.toLowerCase() === formattedCategorySlug.toLowerCase()
-    );
+    const fetchCategoryData = async () => {
+      try {
+        setLoading(true);
+        
+        // First, fetch all categories to find the matching one
+        const categoriesResponse = await ProductService.getCategories();
+        
+        if (categoriesResponse.success) {
+          // Find the category from the slug
+          const formattedCategorySlug = categorySlug.replace(/-/g, ' ');
+          const foundCategory = categoriesResponse.categories.find(
+            cat => cat.name.toLowerCase().replace(/\s+/g, '-') === categorySlug.toLowerCase() ||
+                   cat.name.toLowerCase() === formattedCategorySlug.toLowerCase()
+          );
 
-    if (foundCategory) {
-      setCategory(foundCategory);
-      
-      // Filter products for this category
-      const categoryProducts = mockProducts.filter(
-        product => product.category.toLowerCase() === foundCategory.name.toLowerCase()
-      );
-      
-      setProducts(categoryProducts);
+          if (foundCategory) {
+            setCategory({
+              ...foundCategory,
+              image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&h=500&q=80',
+              description: `Discover high-quality ${foundCategory.name.toLowerCase()} designed for optimal performance and durability for your vehicle.`
+            });
+            
+            // Set subcategories if available
+            setSubcategories(foundCategory.subcategories || []);
+            
+            // Fetch products for this category
+            const productsResponse = await ProductService.getProducts({
+              categoryId: foundCategory.id,
+              limit: 100
+            });
+            
+            if (productsResponse.success) {
+              setProducts(productsResponse.products || []);
+            } else {
+              setError(productsResponse.error || 'Failed to fetch products');
+            }
+          } else {
+            setError('Category not found');
+          }
+        } else {
+          setError(categoriesResponse.error || 'Failed to fetch categories');
+        }
+        
+      } catch (err) {
+        console.error('Error fetching category data:', err);
+        setError('Failed to load category data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (categorySlug) {
+      fetchCategoryData();
     }
   }, [categorySlug]);
 
   const handleAddToCart = (productId) => {
-    // In a real implementation, this would add the item to the cart
-    console.log(`Added product ${productId} to cart`);
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      addToCart(productId, 1, { 
+        dealerId: product.dealer?.id,
+        price: product.price 
+      });
+    }
   };
 
   const handleSubcategorySelect = (subcategory) => {
@@ -320,17 +150,47 @@ const CategoryPage = () => {
   // Filter products based on selected subcategory
   const filteredProducts = selectedSubcategory === 'All'
     ? products
-    : products.filter(product => product.subcategory === selectedSubcategory);
+    : products.filter(product => 
+        product.subcategory?.name === selectedSubcategory ||
+        product.subcategory?.id === selectedSubcategory
+      );
 
-  if (!category) {
+  if (loading) {
+    return (
+      <div className="bg-neutral-50 min-h-screen pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary-500 border-r-transparent align-[-0.125em]"></div>
+            <p className="mt-6 text-neutral-600 font-medium">Loading category...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !category) {
     return (
       <div className="bg-neutral-50 min-h-screen py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-neutral-800 mb-4">Category not found</h1>
-          <p className="text-neutral-600 mb-6">The category you are looking for does not exist.</p>
-          <Link to="/" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
-            Back to Home
-          </Link>
+          <h1 className="text-2xl font-bold text-neutral-800 mb-4">
+            {error || 'Category not found'}
+          </h1>
+          <p className="text-neutral-600 mb-6">
+            {error === 'Category not found' 
+              ? 'The category you are looking for does not exist.' 
+              : 'There was an error loading the category.'}
+          </p>
+          <div className="space-x-4">
+            <Link to="/" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
+              Back to Home
+            </Link>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="inline-flex items-center px-4 py-2 border border-neutral-300 text-neutral-700 rounded-md hover:bg-neutral-50 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -373,34 +233,36 @@ const CategoryPage = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Subcategory filters */}
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => handleSubcategorySelect('All')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                selectedSubcategory === 'All'
-                  ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md transform scale-105'
-                  : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200 hover:border-primary-300'
-              }`}
-            >
-              All Items
-            </button>
-            
-            {category.subcategories.map(subcategory => (
+        {subcategories.length > 0 && (
+          <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+            <div className="flex flex-wrap gap-2">
               <button
-                key={subcategory}
-                onClick={() => handleSubcategorySelect(subcategory)}
+                onClick={() => handleSubcategorySelect('All')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  selectedSubcategory === subcategory
+                  selectedSubcategory === 'All'
                     ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md transform scale-105'
                     : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200 hover:border-primary-300'
                 }`}
               >
-                {subcategory}
+                All Items
               </button>
-            ))}
+              
+              {subcategories.map(subcategory => (
+                <button
+                  key={subcategory.id}
+                  onClick={() => handleSubcategorySelect(subcategory.name)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                    selectedSubcategory === subcategory.name
+                      ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md transform scale-105'
+                      : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200 hover:border-primary-300'
+                  }`}
+                >
+                  {subcategory.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Results count */}
         <div className="mb-6 flex items-center text-sm text-neutral-600 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-neutral-200">
@@ -436,34 +298,36 @@ const CategoryPage = () => {
         )}
         
         {/* Featured subcategories */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-neutral-900 font-display mb-6">Shop by Subcategory</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {category.subcategories.map(subcategory => (
-              <div 
-                key={subcategory}
-                className="bg-white rounded-lg shadow-card hover:shadow-luxury border border-neutral-100 overflow-hidden group relative"
-              >
-                <div className="p-6 flex flex-col items-center text-center">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-r from-primary-100 to-primary-50 flex items-center justify-center mb-4 text-primary-600 group-hover:scale-110 transition-transform duration-300">
-                    <FiBox size={24} />
+        {subcategories.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-neutral-900 font-display mb-6">Shop by Subcategory</h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {subcategories.map(subcategory => (
+                <div 
+                  key={subcategory.id}
+                  className="bg-white rounded-lg shadow-card hover:shadow-luxury border border-neutral-100 overflow-hidden group relative"
+                >
+                  <div className="p-6 flex flex-col items-center text-center">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-primary-100 to-primary-50 flex items-center justify-center mb-4 text-primary-600 group-hover:scale-110 transition-transform duration-300">
+                      <FiBox size={24} />
+                    </div>
+                    
+                    <h3 className="text-lg font-bold text-neutral-800 mb-4 font-display">{subcategory.name}</h3>
+                    
+                    <button
+                      onClick={() => handleSubcategorySelect(subcategory.name)}
+                      className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 group-hover:underline transition-colors"
+                    >
+                      View Products
+                      <FiChevronRight className="ml-1 group-hover:translate-x-1 transition-transform duration-300" size={16} />
+                    </button>
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-neutral-800 mb-4 font-display">{subcategory}</h3>
-                  
-                  <button
-                    onClick={() => handleSubcategorySelect(subcategory)}
-                    className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 group-hover:underline transition-colors"
-                  >
-                    View Products
-                    <FiChevronRight className="ml-1 group-hover:translate-x-1 transition-transform duration-300" size={16} />
-                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

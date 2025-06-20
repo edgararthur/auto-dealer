@@ -18,6 +18,7 @@ import { FiAlertCircle } from 'react-icons/fi';
  * @param {Number} columns - Number of columns on large screens
  * @param {Boolean} compact - Whether to show compact product cards
  * @param {Function} getProductTags - Function that receives a product and returns an array of tags
+ * @param {Function} onPriceCompare - Function to handle price comparison
  */
 const ProductGrid = ({ 
   products = [], 
@@ -31,7 +32,8 @@ const ProductGrid = ({
   emptyMessage = "No products found",
   columns = 4,
   compact = false,
-  getProductTags = () => []
+  getProductTags = () => [],
+  onPriceCompare
 }) => {
   // Generate column class based on columns prop
   const getColumnClass = () => {
@@ -108,6 +110,7 @@ const ProductGrid = ({
           onAddToWishlist={onAddToWishlist}
           onQuickView={onQuickView}
           onAddToComparison={onAddToComparison}
+          onPriceCompare={onPriceCompare}
           isInComparison={isInComparison ? isInComparison(product.id) : false}
           showQuickActions={showQuickActions}
           compact={compact}
@@ -125,6 +128,7 @@ ProductGrid.propTypes = {
   onAddToWishlist: PropTypes.func,
   onQuickView: PropTypes.func,
   onAddToComparison: PropTypes.func,
+  onPriceCompare: PropTypes.func,
   isInComparison: PropTypes.func,
   showQuickActions: PropTypes.bool,
   emptyMessage: PropTypes.string,

@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import supabase from '../../shared/supabase/supabaseClient';
+import supabase from '../../shared/supabase/supabaseClient.js';
 import { logError } from '../../shared/utils/errorLogger';
 
-// Add console logging to check if imports are working
-console.log('Buyer AuthContext: Imports loaded', { 
-  hasSupabase: !!supabase, 
-  hasSupabaseAuth: !!(supabase && supabase.auth),
-  logError: !!logError
-});
+// Add console logging to check if imports are working (development only)
+if (process.env.NODE_ENV === 'development') {
+    console.log('Buyer AuthContext: Imports loaded', { 
+    hasSupabase: !!supabase, 
+    hasSupabaseAuth: !!(supabase && supabase.auth),
+    logError: !!logError
+  });
+}
 
 // Create context
 const AuthContext = createContext(null);
@@ -24,24 +26,32 @@ export function AuthProvider({ children }) {
     // Get current session and set up auth state
     const initializeAuth = async () => {
       try {
-        console.log('Buyer AuthContext: Starting initialization');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: Starting initialization');
+        }
         setLoading(true);
         
         // Get current session
         if (!supabase || !supabase.auth) {
-          console.error('Buyer AuthContext: Supabase or supabase.auth is undefined');
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Buyer AuthContext: Supabase or supabase.auth is undefined');
+          }
           setError('Authentication service unavailable');
           setLoading(false);
           return;
         }
         
-        console.log('Buyer AuthContext: Getting session');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: Getting session');
+        }
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
-        console.log('Buyer AuthContext: Session result', { 
-          hasSession: !!currentSession, 
-          error: sessionError ? sessionError.message : null 
-        });
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: Session result', { 
+            hasSession: !!currentSession, 
+            error: sessionError ? sessionError.message : null 
+          });
+        }
         
         if (sessionError) {
           throw sessionError;
@@ -51,7 +61,9 @@ export function AuthProvider({ children }) {
         
         // If we have a session, get user profile
         if (currentSession) {
-          console.log('Buyer AuthContext: Getting user profile');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Buyer AuthContext: Getting user profile');
+          }
           
           // First try to get profile by user ID
           let { data: profile, error: profileError } = await supabase
@@ -60,14 +72,18 @@ export function AuthProvider({ children }) {
             .eq('id', currentSession.user.id)
             .maybeSingle(); // Use maybeSingle() instead of single()
             
-          console.log('Buyer AuthContext: Profile result', { 
-            hasProfile: !!profile, 
-            error: profileError ? profileError.message : null 
-          });
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Buyer AuthContext: Profile result', { 
+              hasProfile: !!profile, 
+              error: profileError ? profileError.message : null 
+            });
+          }
             
           // If no profile found by ID, try to find by email
           if (!profile && !profileError && currentSession.user.email) {
-            console.log('Buyer AuthContext: Profile not found by ID, trying email lookup');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Buyer AuthContext: Profile not found by ID, trying email lookup');
+            }
             const { data: profileByEmail, error: emailError } = await supabase
               .from('profiles')
               .select('*')
@@ -76,15 +92,21 @@ export function AuthProvider({ children }) {
               
             if (profileByEmail && !emailError) {
               profile = profileByEmail;
-              console.log('Buyer AuthContext: Found profile by email');
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('Buyer AuthContext: Found profile by email');
+              }
             } else if (emailError) {
-              console.error('Buyer AuthContext: Error finding profile by email:', emailError);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Buyer AuthContext: Error finding profile by email:', emailError);
+              }
             }
           }
           
           // If still no profile found, create a basic one for buyer
           if (!profile && !profileError) {
-            console.log('Buyer AuthContext: No profile found, creating basic buyer profile');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Buyer AuthContext: No profile found, creating basic buyer profile');
+            }
             try {
               const { data: newProfile, error: createError } = await supabase
                 .from('profiles')
@@ -102,14 +124,20 @@ export function AuthProvider({ children }) {
                 .single();
                 
               if (createError) {
-                console.error('Buyer AuthContext: Error creating profile:', createError);
+                if (process.env.NODE_ENV === 'development') {
+                  console.error('Buyer AuthContext: Error creating profile:', createError);
+                }
                 // Continue without profile if creation fails
               } else {
                 profile = newProfile;
-                console.log('Buyer AuthContext: Created new buyer profile');
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('Buyer AuthContext: Created new buyer profile');
+                }
               }
             } catch (createErr) {
-              console.error('Buyer AuthContext: Exception creating profile:', createErr);
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Buyer AuthContext: Exception creating profile:', createErr);
+              }
             }
           }
           
@@ -122,16 +150,24 @@ export function AuthProvider({ children }) {
             ...currentSession.user,
             profile
           });
-          console.log('Buyer AuthContext: User set successfully');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Buyer AuthContext: User set successfully');
+          }
         } else {
-          console.log('Buyer AuthContext: No session found, user not authenticated');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Buyer AuthContext: No session found, user not authenticated');
+          }
         }
       } catch (err) {
-        console.error('Buyer AuthContext: Initialization error', err.message, err.stack);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Buyer AuthContext: Initialization error', err.message, err.stack);
+        }
         logError('AuthContext.initializeAuth', err);
         setError(err.message || 'Failed to initialize authentication');
       } finally {
-        console.log('Buyer AuthContext: Finished initialization, setting loading to false');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: Finished initialization, setting loading to false');
+        }
         setLoading(false);
       }
     };
@@ -140,18 +176,26 @@ export function AuthProvider({ children }) {
 
     // Set up auth state change subscription
     if (!supabase || !supabase.auth) {
-      console.error('Buyer AuthContext: Supabase or supabase.auth is undefined when setting up subscription');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Buyer AuthContext: Supabase or supabase.auth is undefined when setting up subscription');
+      }
       return () => {}; // Return empty cleanup function
     }
 
-    console.log('Buyer AuthContext: Setting up auth state change subscription');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Buyer AuthContext: Setting up auth state change subscription');
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('Buyer AuthContext: Auth state change', { event, hasSession: !!newSession });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Buyer AuthContext: Auth state change', { event, hasSession: !!newSession });
+      }
       setSession(newSession);
       
       if (event === 'SIGNED_IN' && newSession) {
         // Get user profile on sign in
-        console.log('Buyer AuthContext: Getting profile after sign in');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: Getting profile after sign in');
+        }
         
         // Try getting profile by ID first
         let { data: profile, error: profileError } = await supabase
@@ -174,7 +218,9 @@ export function AuthProvider({ children }) {
         }
         
         if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Buyer AuthContext: Error getting profile after sign in', profileError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Buyer AuthContext: Error getting profile after sign in', profileError);
+          }
           return;
         }
           
@@ -182,16 +228,22 @@ export function AuthProvider({ children }) {
           ...newSession.user,
           profile
         });
-        console.log('Buyer AuthContext: User set after sign in');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: User set after sign in');
+        }
       } else if (event === 'SIGNED_OUT') {
-        console.log('Buyer AuthContext: User signed out');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Buyer AuthContext: User signed out');
+        }
         setUser(null);
       }
     });
 
     // Clean up subscription
     return () => {
-      console.log('Buyer AuthContext: Cleanup subscription');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Buyer AuthContext: Cleanup subscription');
+      }
       subscription?.unsubscribe();
     };
   }, []);
@@ -411,7 +463,7 @@ export function AuthProvider({ children }) {
       
       return {
         success: true,
-        message: 'Password reset instructions sent to your email'
+        message: 'Password reset email sent successfully'
       };
     } catch (err) {
       logError('AuthContext.resetPassword', err);
@@ -428,43 +480,29 @@ export function AuthProvider({ children }) {
       setError(null);
       
       if (!user) {
-        return { success: false, error: 'Not authenticated' };
+        return { success: false, error: 'User not authenticated' };
       }
       
-      // Update profile in database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .update({
-          ...profileData,
-          updated_at: new Date()
-        })
-        .eq('id', user.id);
+        .update(profileData)
+        .eq('id', user.id)
+        .select()
+        .single();
         
       if (error) {
         throw error;
       }
       
-      // Get updated profile
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle() instead of single()
-        
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // Only throw if it's not a "no rows found" error
-        throw fetchError;
-      }
-      
       // Update user state with new profile data
       setUser({
         ...user,
-        profile: updatedProfile
+        profile: data
       });
       
       return {
         success: true,
-        profile: updatedProfile,
+        profile: data,
         message: 'Profile updated successfully'
       };
     } catch (err) {
@@ -476,28 +514,22 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Update user email
+  // Update email
   const updateEmail = async (newEmail, password) => {
     try {
       setError(null);
       
       if (!user) {
-        return { success: false, error: 'Not authenticated' };
+        return { success: false, error: 'User not authenticated' };
       }
       
-      // First verify password
-      const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password
-      });
-      
-      if (verifyError) {
-        return { success: false, error: 'Incorrect password' };
+      if (!newEmail || !password) {
+        return { success: false, error: 'New email and password are required' };
       }
       
-      // Update email
       const { error } = await supabase.auth.updateUser({
-        email: newEmail
+        email: newEmail,
+        password: password
       });
       
       if (error) {
@@ -506,7 +538,7 @@ export function AuthProvider({ children }) {
       
       return {
         success: true,
-        message: 'Verification email sent to your new email address'
+        message: 'Email update requested. Please check your new email for confirmation.'
       };
     } catch (err) {
       logError('AuthContext.updateEmail', err);
@@ -517,26 +549,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Update user password
+  // Update password
   const updatePassword = async (currentPassword, newPassword) => {
     try {
       setError(null);
       
       if (!user) {
-        return { success: false, error: 'Not authenticated' };
+        return { success: false, error: 'User not authenticated' };
       }
       
-      // First verify current password
-      const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword
-      });
-      
-      if (verifyError) {
-        return { success: false, error: 'Current password is incorrect' };
+      if (!currentPassword || !newPassword) {
+        return { success: false, error: 'Current password and new password are required' };
       }
       
-      // Update password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -558,32 +583,56 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Helper function to ensure buyer profile exists
+  // Ensure buyer profile exists
   const ensureBuyerProfile = async (user) => {
     try {
-      console.log('Buyer AuthContext: Ensuring buyer profile exists for user:', user.id);
-      const { data, error } = await supabase.rpc('ensure_my_buyer_profile');
+      // Check if profile already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
       
-      if (error) {
-        console.error('Buyer AuthContext: Error ensuring profile:', error);
-        return null;
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
       }
       
-      console.log('Buyer AuthContext: Profile ensured:', data);
-      return data;
+      if (existingProfile) {
+        return { success: true, profile: existingProfile };
+      }
+      
+      // Create new profile
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || 
+                     user.user_metadata?.name || 
+                     user.email?.split('@')[0] || 'User',
+          email: user.email,
+          role: 'customer',
+          created_at: new Date(),
+          is_active: true
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        throw createError;
+      }
+      
+      return { success: true, profile: newProfile };
     } catch (err) {
-      console.error('Buyer AuthContext: Exception ensuring profile:', err);
-      return null;
+      logError('AuthContext.ensureBuyerProfile', err);
+      return { success: false, error: err.message };
     }
   };
 
-  // Context value
   const value = {
     user,
     session,
     loading,
     error,
-    isAuthenticated: !!user,
     register,
     login,
     logout,
@@ -594,7 +643,6 @@ export function AuthProvider({ children }) {
     ensureBuyerProfile
   };
 
-  // Provide auth context to children components
   return (
     <AuthContext.Provider value={value}>
       {children}
@@ -602,10 +650,9 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === null) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

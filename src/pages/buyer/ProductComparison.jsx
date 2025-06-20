@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiX, FiShoppingCart, FiHeart } from 'react-icons/fi';
-import { ProductService } from 'autoplus-shared';
+import ProductService from '../../../shared/services/productService';
 import { Breadcrumb, Button, EmptyState, Rating } from '../../components/common';
 import { useComparison } from '../../contexts/ComparisonContext';
 import { useCart } from '../../contexts/CartContext';

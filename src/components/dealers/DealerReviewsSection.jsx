@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useAuth } from '../../contexts/AuthContext';
 import DealerReputationBadge from './DealerReputationBadge';
 import { FaStar, FaRegStar, FaUserCircle, FaSpinner } from 'react-icons/fa';
-import { DealerService } from 'autoplus-shared';
+import { DealerService } from 'Autora-shared';
 
 const StarRating = ({ rating, setRating, editable = false, size = 'md' }) => {
   const sizeClass = {

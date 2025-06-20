@@ -8,6 +8,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { BrowsingHistoryProvider } from './contexts/BrowsingHistoryContext';
 import { MaintenanceRemindersProvider } from './contexts/MaintenanceRemindersContext';
 import { Analytics } from '@vercel/analytics/react';
+import { ErrorBoundary } from './components/common';
 
 // Components
 import StoreHeader from './components/navigation/StoreHeader';
@@ -42,6 +43,7 @@ import TodaysDeals from './pages/buyer/TodaysDeals';
 import BestSellers from './pages/buyer/BestSellers';
 import NewArrivals from './pages/buyer/NewArrivals';
 import Brands from './pages/buyer/Brands';
+import Categories from './pages/buyer/Categories';
 import CategoryPage from './pages/buyer/CategoryPage';
 import SubcategoryPage from './pages/buyer/SubcategoryPage';
 import BrowsingHistory from './pages/buyer/BrowsingHistory';
@@ -79,9 +81,14 @@ const LandingLayout = ({ children }) => (
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, error } = useAuth();
+  const { user, loading, error } = useAuth();
+  const isAuthenticated = !!user;
   
-  console.log('Buyer ProtectedRoute:', { loading, isAuthenticated, hasError: !!error, errorMsg: error });
+  if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Buyer ProtectedRoute:', { loading, isAuthenticated, hasError: !!error, errorMsg: error });
+  }
+  }
   
   // Show loading state while checking authentication
   if (loading) {
@@ -122,26 +129,34 @@ const ProtectedRoute = ({ children }) => {
   
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    console.log("Buyer ProtectedRoute: Not authenticated, redirecting to login");
-    return <Navigate to="/auth/login" />;
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Buyer ProtectedRoute: Not authenticated, redirecting to login");
+    }
+    const currentPath = window.location.pathname + window.location.search;
+    return <Navigate to={`/auth/login?returnTo=${encodeURIComponent(currentPath)}`} />;
   }
   
   // Render children if authenticated
-  console.log("Buyer ProtectedRoute: Authentication successful, rendering content");
+  if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Buyer ProtectedRoute: Authentication successful, rendering content");
+  }
+  }
   return children;
 };
 
 // Main application component
 const App = () => {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <ComparisonProvider>
-            <ThemeProvider>
-              <BrowsingHistoryProvider>
-                <MaintenanceRemindersProvider>
-                  <Router>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <ComparisonProvider>
+              <ThemeProvider>
+                <BrowsingHistoryProvider>
+                  <MaintenanceRemindersProvider>
+                    <Router>
                     <Routes>
                       {/* Auth routes */}
                       <Route path="/auth/login" element={
@@ -339,6 +354,18 @@ const App = () => {
                         }
                       />
                       
+                      {/* Categories page */}
+                      <Route
+                        path="/categories"
+                        element={
+                          <ProtectedRoute>
+                            <StoreLayout>
+                              <Categories />
+                            </StoreLayout>
+                          </ProtectedRoute>
+                        }
+                      />
+                      
                       {/* Category and Subcategory Routes */}
                       <Route
                         path="/category/:categorySlug"
@@ -454,6 +481,7 @@ const App = () => {
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -4,7 +4,7 @@ import { FiArrowLeft, FiCheck, FiTool, FiAlertTriangle } from 'react-icons/fi';
 import { useMaintenanceReminders } from '../../contexts/MaintenanceRemindersContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Breadcrumb, Button } from '../../components/common';
-import supabase from '../../../shared/supabase/supabaseClient';
+import supabase from '../../../shared/supabase/supabaseClient.js';
 
 const AddMaintenanceReminder = () => {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 {
-  "name": "autoplus-buyer",
+  "name": "Autora-buyer",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,11 +11,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
     "@vercel/analytics": "^1.5.0",
-    "autoplus-shared": "file:./shared",
+    "Autora-shared": "file:./shared",
     "axios": "^1.4.0",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
     "framer-motion": "^12.11.0",
+    "lodash": "^4.17.21",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -37,6 +38,7 @@
     "autoprefixer": "^10.4.15",
     "postcss": "^8.4.28",
     "tailwindcss": "^3.3.3",
+    "terser": "^5.43.1",
     "vite": "^4.4.9"
   }
 }

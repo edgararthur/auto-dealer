@@ -24,6 +24,8 @@ import {
 import { ThemeSwitcher } from '../../components/common';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
+import AdvancedSearch from '../search/AdvancedSearch';
+import SmartNotifications from '../notifications/SmartNotifications';
 
 // Note: In a real implementation, these would come from the cart context/service
 const CART_ITEMS_COUNT = 5;
@@ -34,7 +36,6 @@ const StoreHeader = () => {
   const { items: cartItems } = useCart();
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
@@ -63,14 +64,6 @@ const StoreHeader = () => {
       subcategories: ['Floor Mats', 'Seat Covers', 'Steering Wheels', 'Dashboard Accessories']
     }
   ];
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -104,21 +97,21 @@ const StoreHeader = () => {
       <div className="bg-neutral-900 text-neutral-200 px-4 py-2 text-xs dark:bg-neutral-950">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-6">
-            <a href="tel:+233509999999" className="hover:text-gold-300 transition-colors duration-200">
+            <a href="tel:+233509999999" className="hover:text-orange-300 transition-colors duration-200">
               <FiPhone className="inline mr-1" size={12} /> +233 50 999 9999
             </a>
-            <a href="mailto:support@autoplus.com" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
-              <FiMail className="inline mr-1" size={12} /> support@autoplus.com
+            <a href="mailto:support@Autora.com" className="hidden sm:inline-flex items-center hover:text-orange-300 transition-colors duration-200">
+              <FiMail className="inline mr-1" size={12} /> support@Autora.com
             </a>
           </div>
           <div className="flex items-center space-x-6">
-            <Link to="/track-order" className="hover:text-gold-300 transition-colors duration-200 flex items-center">
+            <Link to="/track-order" className="hover:text-orange-300 transition-colors duration-200 flex items-center">
               <FiPackage className="inline mr-1" size={12} /> Track Order
             </Link>
-            <Link to="/dealers" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
+            <Link to="/dealers" className="hidden sm:inline-flex items-center hover:text-orange-300 transition-colors duration-200">
               <FiMap className="inline mr-1" size={12} /> Find Dealers
             </Link>
-            <Link to="/help" className="hidden sm:inline-flex items-center hover:text-gold-300 transition-colors duration-200">
+            <Link to="/help" className="hidden sm:inline-flex items-center hover:text-orange-300 transition-colors duration-200">
               <FiHelpCircle className="inline mr-1" size={12} /> Help
             </Link>
             <div className="border-l border-neutral-700 pl-4">
@@ -129,11 +122,11 @@ const StoreHeader = () => {
       </div>
       
       {/* Main header with logo, search and cart */}
-      <div className="bg-gradient-luxury px-4 py-4 shadow-inner dark:bg-neutral-900">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-4 py-4 shadow-inner dark:bg-neutral-900">
         <div className="max-w-7xl mx-auto flex items-center">
           {/* Mobile menu button */}
           <button
-            className="lg:hidden mr-3 text-white hover:text-gold-300 transition-colors duration-200"
+            className="lg:hidden mr-3 text-white hover:text-orange-300 transition-colors duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-expanded={isMenuOpen}
             aria-controls="mobile-menu"
@@ -146,49 +139,40 @@ const StoreHeader = () => {
           <div className="flex-shrink-0 mr-8">
             <Link to="/" className="flex items-center">
               <span className="text-3xl font-bold text-white font-display tracking-wider">
-                <span className="text-gold-300">Auto</span>Plus
+                <span className="text-orange-400">Auto</span>ra
               </span>
             </Link>
           </div>
           
-          {/* Search bar - Takes most of the space */}
+          {/* Advanced Search - Takes most of the space */}
           <div className="flex-1 max-w-3xl">
-            <form onSubmit={handleSearchSubmit} className="flex">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  className="block w-full py-2.5 pl-4 pr-10 text-sm rounded-md border-0 shadow-inner focus:outline-none focus:ring-2 focus:ring-gold-300 placeholder-neutral-400 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500"
-                  placeholder="Search products, brands and categories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="absolute inset-y-0 right-0 px-3 bg-neutral-800 text-white rounded-r-md hover:bg-neutral-700 transition-colors duration-200 dark:bg-neutral-700 dark:hover:bg-neutral-600"
-                >
-                  <FiSearch size={20} />
-                </button>
-              </div>
-            </form>
+            <AdvancedSearch 
+              className="w-full"
+              showTrending={true}
+              showRecentSearches={true}
+            />
           </div>
           
           {/* User actions */}
-          <div className="flex items-center ml-6 space-x-8">
+          <div className="flex items-center ml-6 space-x-6">
             {/* Wishlist icon with counter */}
-            <Link to="/wishlist" className="relative text-white transition-transform hover:scale-110 hover:text-gold-300 duration-200">
+            <Link to="/wishlist" className="relative text-white transition-transform hover:scale-110 hover:text-orange-300 duration-200">
               <FiHeart size={22} />
               {wishlistItems?.length > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-gold-300 rounded-full">
+                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-orange-400 rounded-full">
                   {wishlistItems.length}
                 </span>
               )}
             </Link>
             
+            {/* Smart Notifications */}
+            <SmartNotifications className="text-white" />
+            
             {/* Cart icon with counter */}
-            <Link to="/cart" className="relative text-white transition-transform hover:scale-110 hover:text-gold-300 duration-200">
+            <Link to="/cart" className="relative text-white transition-transform hover:scale-110 hover:text-orange-300 duration-200">
               <FiShoppingCart size={22} />
               {cartItems?.length > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-gold-300 rounded-full animate-pulse-slow">
+                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-orange-400 rounded-full animate-pulse-slow">
                   {cartItems.length}
                 </span>
               )}
@@ -197,7 +181,7 @@ const StoreHeader = () => {
             {/* Account dropdown */}
             <div className="relative account-menu-container">
               <button
-                className="flex items-center text-white transition-transform hover:scale-105 hover:text-gold-300 duration-200"
+                className="flex items-center text-white transition-transform hover:scale-105 hover:text-orange-300 duration-200"
                 onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
                 aria-expanded={isAccountMenuOpen}
               >
@@ -221,7 +205,7 @@ const StoreHeader = () => {
                       <div className="py-2">
                         <Link
                           to="/account"
-                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiUser className="mr-3 text-primary-500" size={16} />
                           My Account
@@ -229,7 +213,7 @@ const StoreHeader = () => {
                         
                         <Link
                           to="/orders"
-                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiPackage className="mr-3 text-primary-500" size={16} />
                           My Orders
@@ -237,7 +221,7 @@ const StoreHeader = () => {
                         
                         <Link
                           to="/wishlist"
-                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiHeart className="mr-3 text-primary-500" size={16} />
                           Saved Items
@@ -245,7 +229,7 @@ const StoreHeader = () => {
                         
                         <Link
                           to="/settings"
-                          className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiSettings className="mr-3 text-primary-500" size={16} />
                           Settings
@@ -255,7 +239,7 @@ const StoreHeader = () => {
                         
                         <button
                           onClick={handleLogout}
-                          className="flex w-full items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
+                          className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
                         >
                           <FiLogOut className="mr-3 text-primary-500" size={16} />
                           Logout
@@ -294,7 +278,7 @@ const StoreHeader = () => {
             {/* All Categories dropdown */}
             <div className="relative categories-menu-container">
               <button
-                className="flex items-center py-3.5 px-5 text-sm font-medium text-neutral-800 hover:text-primary-600 transition-colors duration-200"
+                className="flex items-center py-3.5 px-5 text-sm font-semibold text-neutral-800 hover:text-primary-600 transition-colors duration-200"
                 onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
                 aria-expanded={isCategoriesOpen}
                 onMouseEnter={() => setIsCategoriesOpen(true)}
@@ -375,14 +359,14 @@ const StoreHeader = () => {
                 <FiAward className="mr-1.5" size={16} />
                 Best Sellers
               </Link>
-              <Link to="/brands" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-gold-500 hover:text-gold-600 transition-all duration-200">
+              <Link to="/brands" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-orange-500 hover:text-orange-600 transition-all duration-200">
                 <FiBookmark className="mr-1.5" size={16} />
                 Brands
               </Link>
             </div>
             
             <div className="ml-auto hidden lg:block">
-              <div className="bg-gradient-gold px-3 py-1 rounded-full text-xs font-semibold text-neutral-900 shadow-gold">
+              <div className="bg-gradient-to-r from-orange-400 to-orange-500 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-lg">
                 Premium Quality Guaranteed
               </div>
             </div>
@@ -423,7 +407,7 @@ const StoreHeader = () => {
             
             <Link
               to="/brands"
-              className="flex items-center px-3 py-2.5 rounded-md text-base text-gold-600 font-medium hover:bg-neutral-50"
+              className="flex items-center px-3 py-2.5 rounded-md text-base text-orange-600 font-medium hover:bg-neutral-50"
               onClick={() => setIsMenuOpen(false)}
             >
               <FiBookmark className="mr-2" size={18} />

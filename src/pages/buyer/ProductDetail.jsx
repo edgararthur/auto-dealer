@@ -22,7 +22,7 @@ import {
   FiZoomIn,
   FiBarChart2
 } from 'react-icons/fi';
-import { ProductService } from 'autoplus-shared';
+import ProductService from '../../../shared/services/productService.js';
 import { 
   ProductGrid, 
   Breadcrumb, 

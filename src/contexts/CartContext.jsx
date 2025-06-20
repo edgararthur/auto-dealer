@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from 'autoplus-shared';
+import supabase from '../../shared/supabase/supabaseClient.js';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
@@ -33,18 +33,31 @@ export const CartProvider = ({ children }) => {
           // Load saved carts
           const { data: savedCartsData, error: savedCartsError } = await supabase
             .from('saved_carts')
-            .select(`
-              id,
-              name,
-              created_at,
-              cart_items (*)
-            `)
+            .select('id, name, created_at')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
           
-          if (savedCartsError) throw savedCartsError;
-          
-          setSavedCarts(savedCartsData || []);
+          if (savedCartsError) {
+            console.warn('Saved carts feature not available:', savedCartsError);
+            setSavedCarts([]);
+          } else {
+            // Get cart items for each saved cart separately
+            const cartsWithItems = await Promise.all(
+              (savedCartsData || []).map(async (cart) => {
+                const { data: cartItems } = await supabase
+                  .from('cart_items')
+                  .select('*')
+                  .eq('saved_cart_id', cart.id);
+                
+                return {
+                  ...cart,
+                  cart_items: cartItems || []
+                };
+              })
+            );
+            
+            setSavedCarts(cartsWithItems);
+          }
         } else {
           // If not logged in, load from localStorage
           const savedItems = localStorage.getItem('cartItems');
@@ -248,10 +261,18 @@ export const CartProvider = ({ children }) => {
   };
   
   // Add an item to the cart
-  const addToCart = async (productId, quantity = 1, variantId = null) => {
-    // Check if product already exists in cart
+  const addToCart = async (productId, quantity = 1, options = {}) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Adding to cart:', { productId, quantity, options });
+  }
+    
+    const { variantId = null, dealerId = null, price = null } = options;
+    
+    // Check if product already exists in cart from the same dealer
     const existingItemIndex = items.findIndex(item => 
-      item.product_id === productId && item.variant_id === variantId
+      item.product_id === productId && 
+      item.variant_id === variantId &&
+      item.dealer_id === dealerId
     );
     
     if (existingItemIndex > -1) {
@@ -259,6 +280,9 @@ export const CartProvider = ({ children }) => {
       const updatedItems = [...items];
       updatedItems[existingItemIndex].quantity += quantity;
       setItems(updatedItems);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Updated existing item quantity:', updatedItems[existingItemIndex]);
+  }
       
       if (user) {
         await updateCartItemInDatabase(
@@ -273,70 +297,144 @@ export const CartProvider = ({ children }) => {
         product_id: productId,
         quantity,
         variant_id: variantId,
+        dealer_id: dealerId,
+        custom_price: price, // For dealer-specific pricing
         product: null // Will be populated when fetched from database or API
       };
       
+      if (process.env.NODE_ENV === 'development') {
+      
+        console.log('Adding new item to cart:', newItem);
+  }
+      
       // Add item to database if user is logged in
       if (user) {
-        const { data, error } = await supabase
-          .from('cart_items')
-          .insert({
-            user_id: user.id,
-            product_id: productId,
-            quantity,
-            variant_id: variantId
-          })
-          .select('id')
-          .single();
-          
-        if (error) {
-          console.error('Error adding item to cart:', error);
-        } else {
-          newItem.id = data.id;
+        try {
+          const { data, error } = await supabase
+            .from('cart_items')
+            .insert({
+              user_id: user.id,
+              product_id: productId,
+              quantity,
+              variant_id: variantId,
+              dealer_id: dealerId,
+              custom_price: price
+            })
+            .select('id')
+            .single();
+            
+          if (error) {
+            console.error('Error adding item to cart database:', error);
+          } else {
+            newItem.id = data.id;
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Item added to database with ID:', data.id);
+  }
+          }
+        } catch (dbError) {
+          console.error('Database error when adding to cart:', dbError);
         }
       }
       
-      setItems([...items, newItem]);
+      // Add to state immediately
+      const updatedItems = [...items, newItem];
+      setItems(updatedItems);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Updated cart items state:', updatedItems);
+  }
       
-      // Fetch complete product data
-      fetchProductDetails(productId, newItem.id);
+      // Fetch complete product data including dealer info
+      await fetchProductDetails(productId, newItem.id);
     }
   };
   
   // Fetch product details for cart item
   const fetchProductDetails = async (productId, cartItemId) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Fetching product details for:', { productId, cartItemId });
+  }
+    
     try {
-      const { data: productData, error } = await supabase
+      // Get basic product data
+      const { data: productData, error: productError } = await supabase
         .from('products')
-        .select(`
-          id,
-          name,
-          price,
-          image,
-          product_images(url),
-          dealer:dealer_id(name)
-        `)
+        .select('id, name, price, dealer_id, category_id')
         .eq('id', productId)
         .single();
         
-      if (error) throw error;
+      if (productError) {
+        console.error('Error fetching product data:', productError);
+        throw productError;
+      }
       
-      setItems(prevItems => 
-        prevItems.map(item => 
+      if (process.env.NODE_ENV === 'development') {
+      
+        console.log('Product data fetched:', productData);
+  }
+      
+      // Get related data separately
+      const [imagesResult, categoryResult, dealerResult] = await Promise.allSettled([
+        supabase
+          .from('product_images')
+          .select('url, is_primary')
+          .eq('product_id', productId),
+        productData.category_id ? supabase
+          .from('categories')
+          .select('id, name')
+          .eq('id', productData.category_id)
+          .single() : null,
+        supabase
+          .from('profiles')
+          .select('id, name, business_name, company_name, city, state, verified, rating')
+          .eq('id', productData.dealer_id)
+          .single()
+      ]);
+      
+      const images = imagesResult.status === 'fulfilled' ? imagesResult.value.data || [] : [];
+      const category = categoryResult?.status === 'fulfilled' ? categoryResult.value.data : null;
+      const dealer = dealerResult.status === 'fulfilled' ? dealerResult.value.data : null;
+      
+      if (process.env.NODE_ENV === 'development') {
+      
+        console.log('Related data fetched:', { 
+        images: images.length, 
+        category: category?.name, 
+        dealer: dealer?.business_name || dealer?.name 
+      });
+  }
+      
+      const primaryImage = images.find(img => img.is_primary) || images[0];
+      
+      const enrichedItem = {
+        name: productData.name,
+        price: productData.price, // Use product price as base
+        image: primaryImage?.url || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&h=350&q=80',
+        category: category,
+        dealer: dealer ? {
+          id: dealer.id,
+          company_name: dealer.business_name || dealer.company_name || dealer.name,
+          location: dealer.city && dealer.state ? `${dealer.city}, ${dealer.state}` : 'Location not available',
+          rating: dealer.rating || 0,
+          verified: dealer.verified || false
+        } : null
+      };
+      
+      if (process.env.NODE_ENV === 'development') {
+      
+        console.log('Enriched item data:', enrichedItem);
+  }
+      
+      setItems(prevItems => {
+        const updatedItems = prevItems.map(item => 
           item.id === cartItemId 
-            ? { 
-                ...item, 
-                product: {
-                  id: productData.id,
-                  name: productData.name,
-                  price: productData.price,
-                  image: productData.product_images?.[0]?.url || productData.image,
-                  dealer: productData.dealer?.name
-                }
-              }
+            ? { ...item, ...enrichedItem }
             : item
-        )
-      );
+        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Updated cart items after enrichment:', updatedItems);
+  }
+        return updatedItems;
+      });
     } catch (error) {
       console.error('Error fetching product details:', error);
     }
@@ -422,14 +520,94 @@ export const CartProvider = ({ children }) => {
   // Get total cart value
   const getCartTotal = () => {
     return items.reduce((total, item) => {
-      const price = item.product?.price || 0;
+      const price = item.price || 0;
       return total + (price * item.quantity);
     }, 0);
   };
+
+  // Group cart items by dealer
+  const getCartItemsByDealer = () => {
+    return items.reduce((groups, item) => {
+      const dealerId = item.dealer?.id || 'unknown';
+      const dealerKey = `${dealerId}-${item.dealer?.company_name || 'Unknown Dealer'}`;
+      
+      if (!groups[dealerKey]) {
+        groups[dealerKey] = {
+          dealer: item.dealer || {
+            id: 'unknown',
+            company_name: 'Unknown Dealer',
+            location: 'Unknown Location',
+            rating: 0,
+            verified: false
+          },
+          items: []
+        };
+      }
+      
+      groups[dealerKey].items.push(item);
+      return groups;
+    }, {});
+  };
+
+  // Get cart totals grouped by dealer
+  const getCartTotalsByDealer = () => {
+    const groupedItems = getCartItemsByDealer();
+    const totals = {};
+    let overallTotal = 0;
+
+    Object.keys(groupedItems).forEach(dealerKey => {
+      const group = groupedItems[dealerKey];
+      let subtotal = 0;
+      
+      group.items.forEach(item => {
+        subtotal += (item.price || 0) * (item.quantity || 1);
+      });
+      
+      // Calculate shipping per dealer (mock calculation)
+      const shipping = subtotal >= 100 ? 0 : (group.dealer?.shippingRate || 9.99);
+      const total = subtotal + shipping;
+      
+      totals[dealerKey] = {
+        subtotal,
+        shipping,
+        total
+      };
+      
+      overallTotal += total;
+    });
+
+    return {
+      dealerTotals: totals,
+      grandTotal: overallTotal
+    };
+  };
   
+  // Debug function to log cart state
+  const debugCartState = () => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== CART DEBUG INFO ===');
+  }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Items count:', items.length);
+  }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Items:', items);
+  }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Loading:', loading);
+  }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('User:', user?.id);
+  }
+    if (process.env.NODE_ENV === 'development') {
+      console.log('========================');
+  }
+  };
+
   // Add to value
   const value = {
     items,
+    cartItems: items, // Alias for backward compatibility
     loading,
     addToCart,
     updateCartItem,
@@ -437,10 +615,13 @@ export const CartProvider = ({ children }) => {
     clearCart,
     getCartItemCount,
     getCartTotal,
+    getCartItemsByDealer,
+    getCartTotalsByDealer,
     savedCarts,
     saveCartForLater,
     loadSavedCart,
-    deleteSavedCart
+    deleteSavedCart,
+    debugCartState // For debugging purposes
   };
   
   return (

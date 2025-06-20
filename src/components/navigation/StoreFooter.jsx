@@ -64,7 +64,7 @@ const StoreFooter = () => {
       ]
     },
     {
-      title: 'About AutoPlus',
+      title: 'About Autora',
       links: [
         { name: 'About Us', href: '/about' },
         { name: 'Careers', href: '/careers' },
@@ -143,7 +143,7 @@ const StoreFooter = () => {
               </div>
               <div className="flex items-start">
                 <FiMail className="mt-1 mr-3 text-gold-400" size={18} />
-                <span>support@autoplus.com</span>
+                <span>support@Autora.com</span>
               </div>
             </div>
             

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiUser, FiShoppingBag, FiMapPin, FiCreditCard, FiLock, FiEdit, FiPlus, FiTrash2, FiCheck, FiX, FiChevronRight, FiSettings, FiShield, FiCalendar, FiDollarSign, FiPackage, FiBell, FiHeart, FiTruck } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from 'autoplus-shared';
+import supabase from '../../../shared/supabase/supabaseClient.js';
 
 const BuyerAccount = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -898,7 +898,7 @@ const BuyerAccount = () => {
                         <div className="mt-4 text-sm">
                           {profileCompleteness < 100 && (
                             <p className="text-neutral-600">
-                              Complete your profile to get the most out of AutoPlus.
+                              Complete your profile to get the most out of Autora.
                             </p>
                           )}
                           
