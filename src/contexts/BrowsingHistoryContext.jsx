@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BrowsingHistoryService from '../../shared/services/browsingHistoryService.js';
-import { useAuth } from './AuthContext-bypass';
+import { useAuth } from './AuthContext';
 
 const BrowsingHistoryContext = createContext();
 
@@ -12,18 +12,10 @@ export const BrowsingHistoryProvider = ({ children, maxHistoryItems = 100 }) => 
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [patterns, setPatterns] = useState({});
-  
-  // Use auth context safely - check if it's available
-  let user = null;
-  try {
-    const authContext = useAuth();
-    user = authContext?.user;
-  } catch (error) {
-    // Auth context not available yet, user remains null
-    if (process.env.NODE_ENV === 'development') {
-      console.log('BrowsingHistoryProvider: Auth context not available yet');
-    }
-  }
+
+  // Safely get user from auth context
+  const authContext = useAuth();
+  const user = authContext?.user;
 
   // Load browsing history when user changes
   useEffect(() => {

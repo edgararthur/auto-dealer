@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.0",
+    "@supabase/supabase-js": "^2.50.2",
     "@vercel/analytics": "^1.5.0",
     "Autora-shared": "file:./shared",
     "axios": "^1.4.0",
@@ -20,8 +20,9 @@
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-google-recaptcha": "^3.1.0",
     "react-hook-form": "^7.45.4",
-    "react-icons": "^4.10.1",
+    "react-icons": "^4.12.0",
     "react-lazy-load-image-component": "^1.6.3",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.15.0",

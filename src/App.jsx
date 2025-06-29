@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext-bypass';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import { ComparisonProvider } from './contexts/ComparisonContext';
@@ -27,6 +27,7 @@ import AuthLayout from './components/layouts/AuthLayout';
 import Login from './pages/auth/Login';
 const Register = lazy(() => import('./pages/auth/Register'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const AuthCallback = lazy(() => import('./pages/auth/AuthCallback'));
 
 // Buyer Pages - Lazy load all buyer pages
 const BuyerHome = lazy(() => import('./pages/buyer/BuyerHome'));
@@ -179,13 +180,23 @@ const App = () => {
     <ErrorBoundary>
       <Router>
         <AuthProvider>
-          <ToastProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <ComparisonProvider>
-                  <ThemeProvider>
-                    <BrowsingHistoryProvider>
-                      <MaintenanceRemindersProvider>
+          <AppWithAuth />
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
+  );
+};
+
+// Separate component that uses auth context
+const AppWithAuth = () => {
+  return (
+    <ToastProvider>
+      <CartProvider>
+        <WishlistProvider>
+          <ComparisonProvider>
+            <ThemeProvider>
+              <BrowsingHistoryProvider>
+                <MaintenanceRemindersProvider>
                         <Suspense fallback={<PageLoader />}>
                           {/* Performance Dashboard - Only in development */}
                           {process.env.NODE_ENV === 'development' && (
@@ -212,6 +223,13 @@ const App = () => {
                               <AuthLayout>
                                 <Suspense fallback={<PageLoader />}>
                                   <ForgotPassword />
+                                </Suspense>
+                              </AuthLayout>
+                            } />
+                            <Route path="/auth/callback" element={
+                              <AuthLayout>
+                                <Suspense fallback={<PageLoader />}>
+                                  <AuthCallback />
                                 </Suspense>
                               </AuthLayout>
                             } />
@@ -659,9 +677,6 @@ const App = () => {
               </WishlistProvider>
             </CartProvider>
           </ToastProvider>
-        </AuthProvider>
-      </Router>
-    </ErrorBoundary>
   );
 };
 

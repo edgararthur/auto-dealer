@@ -1,21 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from './AuthContext-bypass';
+import { useAuth } from './AuthContext';
 import supabase from '../../shared/supabase/supabaseClient.js';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  // Use auth context safely - check if it's available
-  let user = null;
-  try {
-    const authContext = useAuth();
-    user = authContext?.user;
-  } catch (error) {
-    // Auth context not available yet, user remains null
-    if (process.env.NODE_ENV === 'development') {
-      console.log('CartProvider: Auth context not available yet');
-    }
-  }
+  // Safely get user from auth context
+  const authContext = useAuth();
+  const user = authContext?.user;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);

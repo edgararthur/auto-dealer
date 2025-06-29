@@ -36,6 +36,7 @@ import {
 import ProductService from '../../../shared/services/productService';
 import BrandService from '../../../shared/services/brandService';
 import CategoryService from '../../../shared/services/categoryService';
+import DealerService from '../../../shared/services/dealerService';
 
 import ProductCard from '../../components/common/ProductCard';
 import Pagination from '../../components/common/Pagination';
@@ -162,9 +163,48 @@ const ShopPage = () => {
       });
 
       const response = await ProductService.getProducts(params);
-      
+
       if (response.success) {
-        setProducts(response.products || []);
+        const products = response.products || [];
+
+        // Fetch dealer information for all products
+        if (products.length > 0) {
+          const dealerIds = [...new Set(products.map(p => p.dealer_id).filter(Boolean))];
+          const dealersData = {};
+
+          // Fetch dealer details for each unique dealer
+          await Promise.all(dealerIds.map(async (dealerId) => {
+            try {
+              const dealerResponse = await DealerService.getDealerById(dealerId);
+              if (dealerResponse.success) {
+                dealersData[dealerId] = dealerResponse.dealer;
+              }
+            } catch (error) {
+              console.log(`Failed to fetch dealer ${dealerId}:`, error);
+            }
+          }));
+
+          // Enhance products with dealer information
+          const enhancedProducts = products.map(product => {
+            const dealerInfo = dealersData[product.dealer_id];
+            return {
+              ...product,
+              dealer: dealerInfo ? {
+                id: dealerInfo.id,
+                business_name: dealerInfo.business_name,
+                company_name: dealerInfo.company_name,
+                name: dealerInfo.full_name || dealerInfo.name,
+                location: dealerInfo.city && dealerInfo.state ? `${dealerInfo.city}, ${dealerInfo.state}` : 'Location not specified',
+                verified: dealerInfo.verification_status === 'verified'
+              } : null
+            };
+          });
+
+          setProducts(enhancedProducts);
+        } else {
+          setProducts(products);
+        }
+
         setTotalCount(response.totalCount || 0);
       } else {
         setError(response.message || 'Failed to load products');

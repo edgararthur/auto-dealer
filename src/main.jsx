@@ -26,9 +26,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 initializeCurrency();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <App />
 );
 
 // Performance monitoring - mark app rendered

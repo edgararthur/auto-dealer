@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import WishlistService from '../../shared/services/wishlistService.js';
-import { useAuth } from './AuthContext-bypass';
+import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext();
 
@@ -10,18 +10,10 @@ export const WishlistProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
-  
-  // Use auth context safely - check if it's available
-  let user = null;
-  try {
-    const authContext = useAuth();
-    user = authContext?.user;
-  } catch (error) {
-    // Auth context not available yet, user remains null
-    if (process.env.NODE_ENV === 'development') {
-      console.log('WishlistProvider: Auth context not available yet');
-    }
-  }
+
+  // Safely get user from auth context
+  const authContext = useAuth();
+  const user = authContext?.user;
   
   // Load wishlist items when user changes
   useEffect(() => {

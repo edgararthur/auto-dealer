@@ -123,6 +123,15 @@ const ProductCard = memo(({
                   {product.name}
                 </h3>
               </Link>
+
+              {/* Dealer Information */}
+              {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+                <p className="text-xs text-gray-600 mb-2">
+                  Sold by <span className="font-medium text-gray-800">
+                    {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+                  </span>
+                </p>
+              )}
               
               {/* Rating */}
               {product.rating && (
@@ -257,6 +266,15 @@ const ProductCard = memo(({
               {product.name}
             </h3>
           </Link>
+
+          {/* Dealer Information */}
+          {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+            <p className="text-xs text-gray-600 mb-2">
+              Sold by <span className="font-medium text-gray-800">
+                {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+              </span>
+            </p>
+          )}
           
           {/* Rating - Amazon style compact */}
           {product.rating && (

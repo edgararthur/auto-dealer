@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import ComparisonService from '../../shared/services/comparisonService.js';
-import { useAuth } from './AuthContext-bypass';
+import { useAuth } from './AuthContext';
 
 const ComparisonContext = createContext();
 
@@ -10,18 +10,10 @@ export const ComparisonProvider = ({ children }) => {
   const [comparison, setComparison] = useState([]);
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
-  
-  // Use auth context safely - check if it's available
-  let user = null;
-  try {
-    const authContext = useAuth();
-    user = authContext?.user;
-  } catch (error) {
-    // Auth context not available yet, user remains null
-    if (process.env.NODE_ENV === 'development') {
-      console.log('ComparisonProvider: Auth context not available yet');
-    }
-  }
+
+  // Safely get user from auth context
+  const authContext = useAuth();
+  const user = authContext?.user;
 
   // Load comparison items from localStorage or database on component mount
   useEffect(() => {

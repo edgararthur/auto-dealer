@@ -1058,11 +1058,7 @@ const ProductService = {
         .from('products')
         .select(`
           *,
-          product_images(*),
-          categories(id, name),
-          brands(id, name),
-          dealers:dealer_id(id, business_name, company_name, name, city, state, phone, email),
-          subcategories:subcategory_id(id, name)
+          product_images(*)
         `)
         .eq('id', productId)
         .eq('status', 'approved')

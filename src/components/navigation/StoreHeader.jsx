@@ -13,7 +13,7 @@ import {
   FiHelpCircle,
   FiArrowRight
 } from 'react-icons/fi';
-import { useAuth } from '../../contexts/AuthContext-bypass';
+import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { LiveSearchDropdown } from '../common';

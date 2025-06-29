@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
-
-// For testing, let's add these default values to make it easier to test login
-const DEFAULT_TEST_EMAIL = 'test@example.com';
-const DEFAULT_TEST_PASSWORD = 'password123';
+import { FiEye, FiEyeOff, FiAlertCircle, FiGithub, FiTwitter } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const Login = () => {
-  const [email, setEmail] = useState(DEFAULT_TEST_EMAIL);
-  const [password, setPassword] = useState(DEFAULT_TEST_PASSWORD);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
+  const [recaptchaValue, setRecaptchaValue] = useState(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   
-  const { login, error: authError } = useAuth();
+  const { login, signInWithGoogle, signInWithGithub, signInWithTwitter, error: authError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -29,6 +30,54 @@ const Login = () => {
       setError(`Authentication error: ${authError}`);
     }
   }, [authError]);
+
+  // Load saved email if available
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('lastUsedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
+
+  const handleSocialAuth = async (provider) => {
+    try {
+      setIsLoading(true);
+      setError('');
+      setStatusMessage(`Connecting to ${provider}...`);
+      
+      let result;
+      switch (provider) {
+        case 'google':
+          result = await signInWithGoogle();
+          break;
+        case 'github':
+          result = await signInWithGithub();
+          break;
+        case 'twitter':
+          result = await signInWithTwitter();
+          break;
+        default:
+          throw new Error('Invalid provider');
+      }
+      
+      if (result.success) {
+        if (rememberDevice) {
+          localStorage.setItem('lastUsedEmail', result.email);
+        }
+        navigate(returnTo);
+      } else {
+        setError(result.error || `${provider} authentication failed`);
+        setFailedAttempts(prev => prev + 1);
+      }
+    } catch (err) {
+      setError(`Failed to authenticate with ${provider}`);
+      console.error(err);
+      setFailedAttempts(prev => prev + 1);
+    } finally {
+      setIsLoading(false);
+      setStatusMessage('');
+    }
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,39 +86,47 @@ const Login = () => {
       setError('Please fill in all fields');
       return;
     }
+
+    // Require reCAPTCHA after 3 failed attempts
+    if (failedAttempts >= 3 && !recaptchaValue) {
+      setError('Please complete the reCAPTCHA verification');
+      return;
+    }
     
     try {
       setError('');
       setStatusMessage('Connecting to authentication service...');
       setIsLoading(true);
       
-      if (process.env.NODE_ENV === 'development') {
-      
-        console.log('Login: Starting login attempt...');
-  }
-      const result = await login(email, password);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Login: Login result', { success: result.success, error: result.error });
-  }
+      const result = await login(email, password, recaptchaValue);
       
       if (result.success) {
         setStatusMessage('Login successful! Redirecting...');
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Login: Successful, navigating to', returnTo);
-  }
+        
+        // Save email if remember device is checked
+        if (rememberDevice) {
+          localStorage.setItem('lastUsedEmail', email);
+        } else {
+          localStorage.removeItem('lastUsedEmail');
+        }
+        
         // Navigate to the returnTo URL or default to the shop page
         navigate(returnTo);
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Login: Failed with error', result.error);
-  }
-        setError(result.error || 'Failed to log in');
+        setError(result.error || 'Invalid email or password');
         setStatusMessage('');
+        setFailedAttempts(prev => prev + 1);
+        
+        // Clear reCAPTCHA on failure
+        if (recaptchaValue) {
+          setRecaptchaValue(null);
+        }
       }
     } catch (err) {
       console.error('Login: Exception occurred', err);
       setError('Failed to log in. Please try again.');
       setStatusMessage('');
+      setFailedAttempts(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
@@ -99,6 +156,47 @@ const Login = () => {
           {statusMessage}
         </div>
       )}
+
+      <div className="grid grid-cols-1 gap-3 mb-6">
+        <button
+          type="button"
+          onClick={() => handleSocialAuth('google')}
+          disabled={isLoading}
+          className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FcGoogle className="h-5 w-5 mr-2" />
+          Continue with Google
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => handleSocialAuth('github')}
+          disabled={isLoading}
+          className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FiGithub className="h-5 w-5 mr-2" />
+          Continue with GitHub
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => handleSocialAuth('twitter')}
+          disabled={isLoading}
+          className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FiTwitter className="h-5 w-5 mr-2" />
+          Continue with Twitter
+        </button>
+      </div>
+
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+        </div>
+      </div>
       
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
@@ -149,13 +247,15 @@ const Login = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <input
-              id="remember_me"
-              name="remember_me"
+              id="remember_device"
+              name="remember_device"
               type="checkbox"
+              checked={rememberDevice}
+              onChange={(e) => setRememberDevice(e.target.checked)}
               className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
             />
-            <label htmlFor="remember_me" className="ml-2 block text-sm text-neutral-700">
-              Remember me
+            <label htmlFor="remember_device" className="ml-2 block text-sm text-neutral-700">
+              Remember this device
             </label>
           </div>
 
@@ -165,6 +265,15 @@ const Login = () => {
             </Link>
           </div>
         </div>
+
+        {failedAttempts >= 3 && (
+          <div className="flex justify-center">
+            <ReCAPTCHA
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'}
+              onChange={setRecaptchaValue}
+            />
+          </div>
+        )}
 
         <div>
           <button
@@ -186,43 +295,6 @@ const Login = () => {
           </button>
         </div>
       </form>
-      
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-neutral-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-neutral-500">Or continue with</span>
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <div>
-            <a
-              href="#"
-              className="w-full inline-flex justify-center py-2 px-4 border border-neutral-300 rounded-md shadow-sm bg-white text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-            >
-              <span className="sr-only">Sign in with Google</span>
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-              </svg>
-            </a>
-          </div>
-
-          <div>
-            <a
-              href="#"
-              className="w-full inline-flex justify-center py-2 px-4 border border-neutral-300 rounded-md shadow-sm bg-white text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-            >
-              <span className="sr-only">Sign in with Facebook</span>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
