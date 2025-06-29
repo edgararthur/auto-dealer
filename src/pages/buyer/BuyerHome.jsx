@@ -18,7 +18,7 @@ import {
 import ProductService from '../../../shared/services/productService';
 import { useCart } from '../../contexts/CartContext';
 import ProductCard from '../../components/common/ProductCard';
-import OptimizedImage from '../../components/common/OptimizedImage';
+import { ProductImage, HeroImage } from '../../components/common/OptimizedImage';
 import { ProductGridSkeleton } from '../../components/common/LoadingStates';
 import { formatPrice } from '../../utils/priceFormatter';
 
@@ -154,11 +154,13 @@ const BuyerHome = () => {
               {recentlyViewed.map((product, index) => (
                 <div key={index} className="group cursor-pointer" onClick={() => navigate(`/products/${product.id}`)}>
                   <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
-                    <OptimizedImage
+                    <ProductImage
                       src={product.image || product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      fallback="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80"
+                      fallbackSrc="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80"
+                      width={300}
+                      height={300}
                     />
                   </div>
                   <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{product.name}</h3>
@@ -251,11 +253,13 @@ const BuyerHome = () => {
                   onClick={() => navigate(`/products/${product.id}`)}
                 >
                   <div className="relative aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
-                    <OptimizedImage
+                    <ProductImage
                       src={product.image || product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      fallback="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80"
+                      fallbackSrc="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80"
+                      width={400}
+                      height={400}
                     />
                     {product.discount_percentage && (
                       <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
@@ -388,11 +392,13 @@ const BuyerHome = () => {
                     onClick={() => navigate(`/products/${product.id}`)}
                   >
                     <div className="relative aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
-                      <OptimizedImage
+                      <ProductImage
                         src={product.image || product.image_url}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        fallback="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80"
+                        fallbackSrc="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80"
+                        width={400}
+                        height={400}
                       />
                       <div className="absolute top-2 left-2">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

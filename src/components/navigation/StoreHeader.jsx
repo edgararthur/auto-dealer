@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  FiSearch, 
-  FiShoppingCart, 
-  FiHeart, 
-  FiUser, 
-  FiMenu, 
-  FiX, 
+import {
+  FiSearch,
+  FiShoppingCart,
+  FiHeart,
+  FiUser,
+  FiMenu,
+  FiX,
   FiChevronDown,
   FiBell,
   FiMapPin,
@@ -18,6 +18,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { LiveSearchDropdown } from '../common';
 import CurrencySelector from '../common/CurrencySelector';
+import { getUserLocation, formatShippingText } from '../../utils/locationUtils';
 
 const StoreHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,7 +26,8 @@ const StoreHeader = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isShopMegaMenuOpen, setIsShopMegaMenuOpen] = useState(false);
-  
+  const [userLocation, setUserLocation] = useState(null);
+
   const { user, logout } = useAuth();
   const { items: cartItems } = useCart();
   const { items: wishlistItems } = useWishlist();
@@ -39,6 +41,27 @@ const StoreHeader = () => {
   // Calculate total cart items
   const cartItemCount = cartItems?.reduce((total, item) => total + item.quantity, 0) || 0;
   const wishlistItemCount = wishlistItems?.length || 0;
+
+  // Fetch user location on component mount
+  useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        const location = await getUserLocation();
+        setUserLocation(location);
+      } catch (error) {
+        console.error('Failed to get user location:', error);
+        // Set default location if detection fails
+        setUserLocation({
+          countryCode: 'US',
+          countryName: 'United States',
+          flag: '🇺🇸',
+          detected: false
+        });
+      }
+    };
+
+    fetchLocation();
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -115,11 +138,15 @@ const StoreHeader = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-8 text-xs">
             <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Hi {user?.name || 'Guest'}!</span>
+              <span className="text-gray-600">
+                Hi {user?.full_name || user?.name || user?.email?.split('@')[0] || 'Guest'}!
+              </span>
               <Link to="/help" className="text-gray-600 hover:text-blue-600">Help & Contact</Link>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-600">🇺🇸 Ship to United States</span>
+              <span className="text-gray-600">
+                {formatShippingText(userLocation)}
+              </span>
               <Link to="/sell" className="text-gray-600 hover:text-blue-600">Sell</Link>
               <Link to="/watchlist" className="text-gray-600 hover:text-blue-600">Watchlist</Link>
               <Link to="/account" className="text-gray-600 hover:text-blue-600">My Account</Link>

@@ -14,7 +14,7 @@ import {
 } from 'react-icons/fi';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
-import OptimizedImage from './OptimizedImage';
+import { ProductImage } from './OptimizedImage';
 import ProductQuickView from '../product/ProductQuickView';
 import { formatPrice, formatDiscount, getCurrentCurrency } from '../../utils/priceFormatter';
 
@@ -218,12 +218,14 @@ const ProductCard = memo(({
         {/* Product Image */}
         <div className="relative bg-white p-4">
           <Link to={`/products/${product.id}`} className="block aspect-square">
-            <OptimizedImage
+            <ProductImage
               src={product.image || product.image_url}
               alt={product.name}
               className="w-full h-full object-contain"
               onLoad={() => setImageLoaded(true)}
-              fallback="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80"
+              fallbackSrc="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80"
+              width={400}
+              height={400}
             />
           </Link>
           

@@ -715,6 +715,124 @@
   scrollbar-width: none;  /* Firefox */
 }
 
-.scrollbar-hide::-webkit-scrollbar { 
+.scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* ===== 4K DISPLAY OPTIMIZATIONS ===== */
+/* High-DPI image rendering */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* Smooth scaling for product images */
+  .product-image,
+  .hero-image,
+  .gallery-image {
+    image-rendering: auto;
+    image-rendering: smooth;
+  }
+}
+
+/* Ultra-high resolution displays (4K+) */
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+  img {
+    image-rendering: auto;
+    image-rendering: smooth;
+  }
+
+  /* Enhanced quality for 4K displays */
+  .product-image,
+  .hero-image,
+  .gallery-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+  }
+}
+
+/* WebP support detection and optimization */
+.webp img {
+  image-rendering: auto;
+}
+
+/* Progressive image loading */
+.image-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Retina display optimizations */
+@media only screen and (-webkit-min-device-pixel-ratio: 2),
+       only screen and (min--moz-device-pixel-ratio: 2),
+       only screen and (-o-min-device-pixel-ratio: 2/1),
+       only screen and (min-device-pixel-ratio: 2),
+       only screen and (min-resolution: 192dpi),
+       only screen and (min-resolution: 2dppx) {
+
+  /* Ensure crisp rendering on retina displays */
+  .product-card img,
+  .hero-image img,
+  .gallery-image img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+  }
+}
+
+/* 4K specific optimizations */
+@media (min-width: 3840px) {
+  /* Larger containers for 4K displays */
+  .container-4k {
+    max-width: 3200px;
+  }
+
+  /* Enhanced spacing for 4K */
+  .section-spacing-4k {
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+  }
+
+  /* Larger text for 4K readability */
+  .text-4k {
+    font-size: 1.25rem;
+    line-height: 1.8;
+  }
+}
+
+/* Image optimization classes */
+.image-optimized {
+  image-rendering: auto;
+  image-rendering: smooth;
+  image-rendering: high-quality;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.image-crisp {
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* Lazy loading placeholder */
+.image-placeholder {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+/* Progressive enhancement for images */
+.progressive-image {
+  transition: filter 0.3s ease;
+}
+
+.progressive-image.loading {
+  filter: blur(5px);
+}
+
+.progressive-image.loaded {
+  filter: blur(0);
 }
