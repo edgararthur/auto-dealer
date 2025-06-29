@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Breadcrumb, 
+import {
+  Breadcrumb,
   LiveSearch,
   EmptyState,
-  LoadingScreen 
+  LoadingScreen
 } from '../../components/common';
-import { FiSearch, FiArrowLeft } from 'react-icons/fi';
+import { FiSearch, FiArrowLeft, FiTruck, FiX } from 'react-icons/fi';
 
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
 
   // Handle search results
   const handleSearch = ({ query, results, count, filters }) => {
@@ -33,23 +34,62 @@ const SearchPage = () => {
     navigate(`/products/${productId}`);
   };
 
-  // Initial search if query in URL
+  // Initial search if query in URL and extract vehicle parameters
   useEffect(() => {
     const query = searchParams.get('q');
+    const year = searchParams.get('year');
+    const make = searchParams.get('make');
+    const model = searchParams.get('model');
+
+    console.log('🔍 SearchPage URL params:', { query, year, make, model });
+
     if (query) {
       setSearchQuery(query);
     }
+
+    // Set vehicle if parameters are present
+    if (year || make || model) {
+      const vehicle = {
+        year: year || '',
+        make: make || '',
+        model: model || ''
+      };
+      setSelectedVehicle(vehicle);
+      console.log('🚗 SearchPage vehicle set:', vehicle);
+    }
   }, [searchParams]);
+
+  // Handle vehicle removal
+  const handleRemoveVehicle = () => {
+    setSelectedVehicle(null);
+
+    // Update URL to remove vehicle parameters
+    const params = new URLSearchParams();
+    if (searchQuery) {
+      params.set('q', searchQuery);
+    }
+    navigate(`/search?${params.toString()}`);
+  };
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Search', href: '/search' }
   ];
 
-  if (searchQuery) {
+  if (searchQuery || selectedVehicle) {
+    let label = '';
+    if (searchQuery && selectedVehicle) {
+      const vehicleStr = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`.trim();
+      label = `"${searchQuery}" for ${vehicleStr}`;
+    } else if (searchQuery) {
+      label = `"${searchQuery}"`;
+    } else if (selectedVehicle) {
+      label = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`.trim();
+    }
+
     breadcrumbItems.push({
-      label: `"${searchQuery}"`,
-      href: `/search?q=${encodeURIComponent(searchQuery)}`
+      label,
+      href: window.location.pathname + window.location.search
     });
   }
 
@@ -70,13 +110,45 @@ const SearchPage = () => {
             >
               <FiArrowLeft size={20} />
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {searchQuery ? `Search results for "${searchQuery}"` : 'Search Products'}
-            </h1>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {searchQuery && selectedVehicle ? (
+                  <>Search results for "{searchQuery}"</>
+                ) : searchQuery ? (
+                  <>Search results for "{searchQuery}"</>
+                ) : selectedVehicle ? (
+                  <>Parts for {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model}</>
+                ) : (
+                  'Search Products'
+                )}
+              </h1>
+
+              {/* Vehicle Filter Display */}
+              {selectedVehicle && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                    <FiTruck className="w-4 h-4 mr-2" />
+                    <span>
+                      {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model}
+                    </span>
+                    <button
+                      onClick={handleRemoveVehicle}
+                      className="ml-2 hover:bg-blue-200 rounded-full p-1"
+                    >
+                      <FiX className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          
+
           <p className="text-gray-600">
-            Find the perfect auto parts for your vehicle. Search by part name, vehicle model, or part number.
+            {selectedVehicle ? (
+              `Find compatible auto parts for your ${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}. All results are filtered for compatibility.`
+            ) : (
+              'Find the perfect auto parts for your vehicle. Search by part name, vehicle model, or part number.'
+            )}
           </p>
         </div>
 
@@ -86,13 +158,21 @@ const SearchPage = () => {
             onSearch={handleSearch}
             onProductSelect={handleProductSelect}
             showResults={true}
-            placeholder="Search for auto parts, vehicles, part numbers..."
+            placeholder={selectedVehicle ?
+              `Search parts for your ${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}...` :
+              "Search for auto parts, vehicles, part numbers..."
+            }
             className="w-full"
             filters={{
               // Default filters for search page
               limit: 24,
-              sortBy: 'relevance'
+              sortBy: 'relevance',
+              // Include vehicle filter if selected
+              ...(selectedVehicle && {
+                vehicle: selectedVehicle
+              })
             }}
+            initialQuery={searchQuery}
           />
         </div>
 

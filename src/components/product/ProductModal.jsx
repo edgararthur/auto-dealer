@@ -18,6 +18,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import ProductService from '../../../shared/services/productService';
 import VehicleCompatibilityChecker from './VehicleCompatibilityChecker';
 import { OptimizedImage } from '../common';
+import { MagnifyGalleryImage } from '../common/MagnifyImage';
 
 /**
  * Modal-based Product Detail Component
@@ -35,7 +36,7 @@ const ProductModal = ({
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [isZoomed, setIsZoomed] = useState(false);
+
   const [relatedProducts, setRelatedProducts] = useState([]);
 
   const navigate = useNavigate();
@@ -205,13 +206,18 @@ const ProductModal = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
                 {/* Left Column - Images */}
                 <div className="space-y-4">
-                  {/* Main Image */}
+                  {/* Main Image with Magnify Effect */}
                   <div className="relative bg-neutral-50 rounded-lg overflow-hidden aspect-square">
-                    <OptimizedImage
+                    <MagnifyGalleryImage
                       src={productImages[selectedImage]}
                       alt={product.name}
-                      className={`w-full h-full object-contain transition-transform duration-300 ${isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'}`}
-                      onClick={() => setIsZoomed(!isZoomed)}
+                      className="w-full h-full object-contain"
+                      width={500}
+                      height={500}
+                      zoomLevel={3}
+                      lensSize={120}
+                      zoomWindowSize={400}
+                      borderRadius={8}
                     />
                     
                     {/* Image Navigation */}
@@ -231,11 +237,7 @@ const ProductModal = ({
                         </button>
                       </>
                     )}
-                    
-                    {/* Zoom Icon */}
-                    <div className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md">
-                      <FiZoomIn size={16} />
-                    </div>
+
                   </div>
                   
                   {/* Thumbnail Images */}
@@ -277,7 +279,12 @@ const ProductModal = ({
                           ({product.reviewCount || 0} reviews)
                         </span>
                       </div>
-                      <span className="text-sm text-neutral-500">SKU: {product.sku}</span>
+                      <span className="text-sm text-blue-600 font-medium">
+                        Sold by: {product.dealer ?
+                          (product.dealer.business_name || product.dealer.company_name || product.dealer.name || 'Verified Dealer')
+                          : 'Marketplace Seller'
+                        }
+                      </span>
                     </div>
                   </div>
 

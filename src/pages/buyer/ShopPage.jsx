@@ -36,7 +36,7 @@ import {
 import ProductService from '../../../shared/services/productService';
 import BrandService from '../../../shared/services/brandService';
 import CategoryService from '../../../shared/services/categoryService';
-import DealerService from '../../../shared/services/dealerService';
+import supabase from '../../../shared/supabase/supabaseClient';
 
 import ProductCard from '../../components/common/ProductCard';
 import Pagination from '../../components/common/Pagination';
@@ -89,6 +89,7 @@ const ShopPage = () => {
 
   // Search and pagination
   const currentPage = parseInt(searchParams.get('page')) || 1;
+  const itemsPerPage = parseInt(searchParams.get('limit')) || 48; // Show more products by default
   const searchQuery = searchParams.get('q') || '';
   const sortBy = searchParams.get('sort') || 'relevance';
   const categoryFilter = searchParams.get('category') || '';
@@ -147,7 +148,7 @@ const ShopPage = () => {
 
       const params = {
         page: currentPage,
-        limit: 24,
+        limit: itemsPerPage,
         sortBy,
         search: searchQuery,
         category: categoryFilter,
@@ -167,35 +168,50 @@ const ShopPage = () => {
       if (response.success) {
         const products = response.products || [];
 
-        // Fetch dealer information for all products
+        // Fetch supplier information for all products
         if (products.length > 0) {
-          const dealerIds = [...new Set(products.map(p => p.dealer_id).filter(Boolean))];
-          const dealersData = {};
+          const supplierIds = [...new Set(products.map(p => p.supplier_id).filter(Boolean))];
+          const suppliersData = {};
 
-          // Fetch dealer details for each unique dealer
-          await Promise.all(dealerIds.map(async (dealerId) => {
+          // Fetch supplier details for each unique supplier
+          await Promise.all(supplierIds.map(async (supplierId) => {
             try {
-              const dealerResponse = await DealerService.getDealerById(dealerId);
-              if (dealerResponse.success) {
-                dealersData[dealerId] = dealerResponse.dealer;
+              // Query suppliers table directly
+              const { data: supplier, error } = await supabase
+                .from('suppliers')
+                .select(`
+                  id,
+                  business_name,
+                  company_name,
+                  full_name,
+                  name,
+                  city,
+                  state,
+                  verification_status
+                `)
+                .eq('id', supplierId)
+                .single();
+
+              if (!error && supplier) {
+                suppliersData[supplierId] = supplier;
               }
             } catch (error) {
-              console.log(`Failed to fetch dealer ${dealerId}:`, error);
+              console.log(`Failed to fetch supplier ${supplierId}:`, error);
             }
           }));
 
-          // Enhance products with dealer information
+          // Enhance products with supplier information
           const enhancedProducts = products.map(product => {
-            const dealerInfo = dealersData[product.dealer_id];
+            const supplierInfo = suppliersData[product.supplier_id];
             return {
               ...product,
-              dealer: dealerInfo ? {
-                id: dealerInfo.id,
-                business_name: dealerInfo.business_name,
-                company_name: dealerInfo.company_name,
-                name: dealerInfo.full_name || dealerInfo.name,
-                location: dealerInfo.city && dealerInfo.state ? `${dealerInfo.city}, ${dealerInfo.state}` : 'Location not specified',
-                verified: dealerInfo.verification_status === 'verified'
+              dealer: supplierInfo ? {
+                id: supplierInfo.id,
+                business_name: supplierInfo.business_name,
+                company_name: supplierInfo.company_name,
+                name: supplierInfo.full_name || supplierInfo.name,
+                location: supplierInfo.city && supplierInfo.state ? `${supplierInfo.city}, ${supplierInfo.state}` : 'Location not specified',
+                verified: supplierInfo.verification_status === 'verified'
               } : null
             };
           });
@@ -206,6 +222,7 @@ const ShopPage = () => {
         }
 
         setTotalCount(response.totalCount || 0);
+        console.log(`📊 Shop Page: Loaded ${products.length} products, Total: ${response.totalCount || 0}, Page: ${currentPage}, Limit: ${itemsPerPage}`);
       } else {
         setError(response.message || 'Failed to load products');
         setProducts([]);
@@ -281,6 +298,16 @@ const ShopPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [setSearchParams]);
 
+  const handleItemsPerPageChange = useCallback((newLimit) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('limit', newLimit.toString());
+      newParams.set('page', '1'); // Reset to first page when changing items per page
+      return newParams;
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [setSearchParams]);
+
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (selectedFilters.categories.length > 0) count += selectedFilters.categories.length;
@@ -296,7 +323,7 @@ const ShopPage = () => {
     return count;
   }, [selectedFilters]);
 
-  const totalPages = Math.ceil(totalCount / 24);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const toggleSection = (sectionId) => {
     const newExpanded = new Set(expandedSections);
@@ -841,7 +868,7 @@ const ShopPage = () => {
                 <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4 mb-4">
                   <div className="flex items-center space-x-4">
                     <span className="text-sm text-gray-600">
-                      {((currentPage - 1) * 24) + 1}-{Math.min(currentPage * 24, totalCount)} of {totalCount.toLocaleString()} results
+                      {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount.toLocaleString()} results
                     </span>
                     <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-500">
                       <FiUsers className="w-4 h-4" />
@@ -871,11 +898,21 @@ const ShopPage = () => {
                 </div>
 
                 {/* Products Grid */}
-                <div className={
-                  viewMode === 'grid' 
-                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                    : 'space-y-4'
-                }>
+                <div className="relative">
+                  {loading && (
+                    <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-lg">
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <span className="text-sm text-gray-600">Loading products...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={
+                    viewMode === 'grid'
+                      ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                      : 'space-y-4'
+                  }>
                   {products.map((product, index) => (
                     <div 
                       key={product.id} 
@@ -955,15 +992,39 @@ const ShopPage = () => {
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 mt-8">
-                    <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                {/* Pagination and Product Info */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mt-8">
+                  <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
+                    {/* Product Count Info */}
+                    <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="text-sm text-gray-600">
-                        Page {currentPage} of {totalPages} pages
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} products
                       </div>
+
+                      {/* Items per page selector */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">Show:</span>
+                        <select
+                          value={itemsPerPage}
+                          onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                          className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value={12}>12</option>
+                          <option value={24}>24</option>
+                          <option value={48}>48</option>
+                          <option value={96}>96</option>
+                          <option value={200}>200</option>
+                          {totalCount <= 500 && <option value={totalCount}>All ({totalCount})</option>}
+                        </select>
+                        <span className="text-sm text-gray-600">per page</span>
+                      </div>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
                       <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
@@ -972,9 +1033,9 @@ const ShopPage = () => {
                         showPageNumbers={7}
                         className="flex items-center space-x-1"
                       />
-                    </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Recently Viewed Section */}
                 {recentlyViewed.length > 0 && (

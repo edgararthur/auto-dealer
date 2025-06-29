@@ -153,28 +153,28 @@ const ProtectedRoute = ({ children }) => {
 
 // Main application component
 const App = () => {
-  // Initialize performance tracking
-  React.useEffect(() => {
-    // Track app initialization
-    const startTime = performance.now();
-    
-    const cleanup = () => {
-      const endTime = performance.now();
-      if (performanceMonitor && typeof performanceMonitor.trackNavigation === 'function') {
-        performanceMonitor.trackNavigation('app_init', 'ready', endTime - startTime);
-      }
-    };
-    
-    // Track when app is ready
-    setTimeout(cleanup, 100);
-    
-    return () => {
-      // Cleanup old metrics on unmount
-      if (performanceMonitor && typeof performanceMonitor.clearOldMetrics === 'function') {
-        performanceMonitor.clearOldMetrics();
-      }
-    };
-  }, []);
+  // Performance tracking DISABLED to prevent reloads
+  // React.useEffect(() => {
+  //   // Track app initialization
+  //   const startTime = performance.now();
+  //
+  //   const cleanup = () => {
+  //     const endTime = performance.now();
+  //     if (performanceMonitor && typeof performanceMonitor.trackNavigation === 'function') {
+  //       performanceMonitor.trackNavigation('app_init', 'ready', endTime - startTime);
+  //     }
+  //   };
+  //
+  //   // Track when app is ready
+  //   setTimeout(cleanup, 100);
+  //
+  //   return () => {
+  //     // Cleanup old metrics on unmount
+  //     if (performanceMonitor && typeof performanceMonitor.clearOldMetrics === 'function') {
+  //       performanceMonitor.clearOldMetrics();
+  //     }
+  //   };
+  // }, []);
 
   return (
     <ErrorBoundary>
@@ -198,8 +198,8 @@ const AppWithAuth = () => {
               <BrowsingHistoryProvider>
                 <MaintenanceRemindersProvider>
                         <Suspense fallback={<PageLoader />}>
-                          {/* Performance Dashboard - Only in development */}
-                          {process.env.NODE_ENV === 'development' && (
+                          {/* Performance Dashboard - DISABLED to prevent reloads */}
+                          {false && process.env.NODE_ENV === 'development' && (
                             <Suspense fallback={null}>
                               <PerformanceDashboard />
                             </Suspense>
@@ -664,8 +664,8 @@ const AppWithAuth = () => {
                         </Suspense>
                         <Analytics />
 
-                        {/* Performance Dashboard - Development Only */}
-                        {import.meta.env.DEV && (
+                        {/* Performance Dashboard - DISABLED to prevent reloads */}
+                        {false && import.meta.env.DEV && (
                           <Suspense fallback={null}>
                             <PerformanceDashboard />
                           </Suspense>

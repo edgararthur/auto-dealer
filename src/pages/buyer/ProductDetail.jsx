@@ -37,6 +37,7 @@ import ProductCard from '../../components/common/ProductCard';
 import VehicleCompatibility from '../../components/common/VehicleCompatibility';
 import { ContentSkeleton } from '../../components/common/LoadingStates';
 import OptimizedImage from '../../components/common/OptimizedImage';
+import { MagnifyGalleryImage } from '../../components/common/MagnifyImage';
 import { formatPrice } from '../../utils/priceFormatter';
 
 const ProductDetail = () => {
@@ -54,7 +55,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('overview');
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [imageZoomed, setImageZoomed] = useState(false);
+
   
   const isWishlisted = product ? isInWishlist(product.id) : false;
 
@@ -306,15 +307,18 @@ const ProductDetail = () => {
             {/* Product Images */}
             <div className="relative">
               <div className="sticky top-8 p-8">
-                {/* Main Image */}
+                {/* Main Image with Magnify Effect */}
                 <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden group mb-4">
-                  <OptimizedImage
+                  <MagnifyGalleryImage
                     src={productImages[selectedImageIndex]}
                     alt={product.name}
-                    className={`w-full h-full object-contain transition-transform duration-300 ${
-                      imageZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in group-hover:scale-105'
-                    }`}
-                    onClick={() => setImageZoomed(!imageZoomed)}
+                    className="w-full h-full object-contain"
+                    width={600}
+                    height={600}
+                    zoomLevel={3.5}
+                    lensSize={150}
+                    zoomWindowSize={500}
+                    borderRadius={16}
                   />
                   
                   {/* Image Controls */}
@@ -408,10 +412,14 @@ const ProductDetail = () => {
                     </button>
                   </div>
 
-                  {/* SKU & Brand */}
+                  {/* Dealer & Brand */}
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mb-6">
-                    {product.sku && (
-                      <span>SKU: <span className="font-mono">{product.sku}</span></span>
+                    {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+                      <span>
+                        Sold by: <span className="font-medium text-blue-600">
+                          {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+                        </span>
+                      </span>
                     )}
                     {product.brand && (
                       <>
@@ -656,8 +664,13 @@ const ProductDetail = () => {
                       <span className="ml-3 text-gray-700">{product.brand || 'OEM Quality'}</span>
                     </div>
                     <div className="border-b border-gray-200 pb-3">
-                      <span className="font-semibold text-gray-900">SKU:</span>
-                      <span className="ml-3 text-gray-700 font-mono">{product.sku || 'N/A'}</span>
+                      <span className="font-semibold text-gray-900">Dealer:</span>
+                      <span className="ml-3 text-blue-600 font-medium">
+                        {product.dealer ?
+                          (product.dealer.business_name || product.dealer.company_name || product.dealer.name || 'Verified Dealer')
+                          : 'Marketplace Seller'
+                        }
+                      </span>
                     </div>
                     <div className="border-b border-gray-200 pb-3">
                       <span className="font-semibold text-gray-900">Part Number:</span>

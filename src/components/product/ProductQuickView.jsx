@@ -27,6 +27,7 @@ import { useWishlist } from '../../contexts/WishlistContext';
 import { useComparison } from '../../contexts/ComparisonContext';
 import { useToast } from '../../contexts/ToastContext';
 import OptimizedImage from '../common/OptimizedImage';
+import { MagnifyGalleryImage } from '../common/MagnifyImage';
 import VehicleCompatibility from '../common/VehicleCompatibility';
 import { formatPrice } from '../../utils/priceFormatter';
 
@@ -41,7 +42,7 @@ const ProductQuickView = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('overview');
-  const [isImageZoomed, setIsImageZoomed] = useState(false);
+
   const [addingToCart, setAddingToCart] = useState(false);
   
   const { addToCart } = useCart();
@@ -314,23 +315,20 @@ const ProductQuickView = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
                 {/* Left Column - Images */}
                 <div className="space-y-4">
-                  {/* Main Image */}
+                  {/* Main Image with Magnify Effect */}
                   <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden group">
-                    <OptimizedImage
+                    <MagnifyGalleryImage
                       src={productImages[selectedImageIndex]}
                       alt={product.name}
-                      className={`w-full h-full object-contain transition-transform duration-300 ${
-                        isImageZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in group-hover:scale-105'
-                      }`}
-                      onClick={() => setIsImageZoomed(!isImageZoomed)}
+                      className="w-full h-full object-contain"
+                      width={450}
+                      height={450}
+                      zoomLevel={2.8}
+                      lensSize={110}
+                      zoomWindowSize={350}
+                      borderRadius={12}
                     />
-                    
-                    <button
-                      onClick={() => setIsImageZoomed(!isImageZoomed)}
-                      className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <FiZoomIn className="w-4 h-4" />
-                    </button>
+
 
                     {hasDiscount && (
                       <div className="absolute top-4 left-4">
@@ -409,8 +407,10 @@ const ProductQuickView = ({
                         </div>
                         <span>({product.review_count || 0} reviews)</span>
                       </div>
-                      {product.sku && (
-                        <span className="text-gray-500">SKU: {product.sku}</span>
+                      {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+                        <span className="text-blue-600 font-medium">
+                          Sold by: {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -508,9 +508,18 @@ const ProductQuickView = ({
                             <span className="text-gray-600">Category:</span>
                             <span className="font-medium">{product.category || 'Auto Parts'}</span>
                           </div>
+                          <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600">Dealer:</span>
+                            <span className="font-medium text-blue-600">
+                              {product.dealer ?
+                                (product.dealer.business_name || product.dealer.company_name || product.dealer.name || 'Verified Dealer')
+                                : 'Marketplace Seller'
+                              }
+                            </span>
+                          </div>
                           <div className="flex items-center justify-between py-2">
                             <span className="text-gray-600">Part Number:</span>
-                            <span className="font-medium font-mono text-sm">{product.part_number || product.sku || 'N/A'}</span>
+                            <span className="font-medium font-mono text-sm">{product.part_number || 'N/A'}</span>
                           </div>
                         </div>
                       </div>

@@ -93,7 +93,7 @@ export const testSupabaseConnection = async () => {
   }
 };
 
-// Auto-run test in development
-if (import.meta.env.DEV) {
-  testSupabaseConnection();
-} 
+// Auto-run test in development - DISABLED to prevent reloads
+// if (import.meta.env.DEV) {
+//   testSupabaseConnection();
+// }

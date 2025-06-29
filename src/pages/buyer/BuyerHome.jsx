@@ -18,7 +18,7 @@ import {
 import ProductService from '../../../shared/services/productService';
 import { useCart } from '../../contexts/CartContext';
 import ProductCard from '../../components/common/ProductCard';
-import { ProductImage, HeroImage } from '../../components/common/OptimizedImage';
+import { ProductImage } from '../../components/common/OptimizedImage';
 import { ProductGridSkeleton } from '../../components/common/LoadingStates';
 import { formatPrice } from '../../utils/priceFormatter';
 

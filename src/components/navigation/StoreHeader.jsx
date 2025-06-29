@@ -16,7 +16,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
-import { LiveSearchDropdown } from '../common';
+import VehicleSearchDropdown from './VehicleSearchDropdown';
 import CurrencySelector from '../common/CurrencySelector';
 import { getUserLocation, formatShippingText } from '../../utils/locationUtils';
 
@@ -192,9 +192,9 @@ const StoreHeader = () => {
             )}
           </div>
 
-          {/* Search Bar - Live Search */}
-          <div className="flex-1 max-w-2xl mx-6">
-            <LiveSearchDropdown className="w-full" />
+          {/* Search Bar - Vehicle Search */}
+          <div className="flex-1 max-w-3xl mx-6">
+            <VehicleSearchDropdown className="w-full" />
           </div>
 
           {/* Right Navigation */}

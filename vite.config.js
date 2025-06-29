@@ -82,20 +82,37 @@ export default defineConfig(({ mode }) => {
       cssMinify: true
     },
     
-    // Development server optimization
+    // Development server optimization - AGGRESSIVE ANTI-RELOAD SETTINGS
     server: {
       port: 3001,
       host: true,
-      open: true,
+      open: false, // Don't auto-open browser
       cors: true,
-      // Fix WebSocket connection issues
-      hmr: {
-        port: 3001,
-        host: 'localhost'
+      // Disable HMR completely to prevent reloads
+      hmr: false,
+      // Watch options to minimize file watching
+      watch: {
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/dist/**',
+          '**/coverage/**',
+          '**/*.log',
+          '**/tmp/**',
+          '**/.cache/**',
+          '**/backups/**',
+          '**/scripts/**',
+          '**/.env*',
+          '**/README.md',
+          '**/*.md'
+        ],
+        // Disable polling completely
+        usePolling: false,
+        interval: 5000 // Very slow polling if any
       },
       // Add caching headers for development
       headers: {
-        'Cache-Control': 'public, max-age=31536000', // 1 year for static assets
+        'Cache-Control': 'public, max-age=31536000',
       }
     },
     

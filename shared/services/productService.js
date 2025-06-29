@@ -310,7 +310,10 @@ const ProductService = {
    */
   getProducts: async (filters = {}) => {
     try {
-      console.log('ProductService: getProducts called with filters:', filters);
+      // Reduced logging for performance
+      if (filters.vehicle || filters.search) {
+        console.log('ProductService: getProducts called with filters:', filters);
+      }
       
       // Create cache key
       const cacheKey = `products_${JSON.stringify(filters)}`;
@@ -387,12 +390,70 @@ const ProductService = {
                .or(`price.lte.${filters.maxPrice},discount_price.lte.${filters.maxPrice}`);
         }
         
+        // Vehicle compatibility filter (from VehicleSearchDropdown)
+        if (filters.vehicle) {
+          const vehicle = filters.vehicle;
+          // console.log('🚗 Filtering by vehicle:', vehicle); // Disabled for performance
+
+          const vehicleConditions = [];
+
+          // Create more precise vehicle matching to avoid wrong results
+          if (vehicle.make) {
+            const makeLower = vehicle.make.toLowerCase();
+            const makeCapitalized = vehicle.make.charAt(0).toUpperCase() + vehicle.make.slice(1).toLowerCase();
+
+            // Use word boundaries to avoid partial matches (e.g., avoid "Honda" matching "Hyundai")
+            vehicleConditions.push(`name ~* '\\y${makeLower}\\y'`);
+            vehicleConditions.push(`name ~* '\\y${makeCapitalized}\\y'`);
+            vehicleConditions.push(`description ~* '\\y${makeLower}\\y'`);
+            vehicleConditions.push(`description ~* '\\y${makeCapitalized}\\y'`);
+            vehicleConditions.push(`sku ILIKE '%${makeLower}%'`);
+            vehicleConditions.push(`sku ILIKE '%${makeCapitalized}%'`);
+          }
+
+          if (vehicle.model) {
+            const modelLower = vehicle.model.toLowerCase();
+            const modelCapitalized = vehicle.model.charAt(0).toUpperCase() + vehicle.model.slice(1).toLowerCase();
+
+            vehicleConditions.push(`name ~* '\\y${modelLower}\\y'`);
+            vehicleConditions.push(`name ~* '\\y${modelCapitalized}\\y'`);
+            vehicleConditions.push(`description ~* '\\y${modelLower}\\y'`);
+            vehicleConditions.push(`description ~* '\\y${modelCapitalized}\\y'`);
+            vehicleConditions.push(`sku ILIKE '%${modelLower}%'`);
+            vehicleConditions.push(`sku ILIKE '%${modelCapitalized}%'`);
+          }
+
+          if (vehicle.year) {
+            vehicleConditions.push(`name ILIKE '%${vehicle.year}%'`);
+            vehicleConditions.push(`description ILIKE '%${vehicle.year}%'`);
+            vehicleConditions.push(`sku ILIKE '%${vehicle.year}%'`);
+          }
+
+          // Search in compatibility JSONB column if it exists
+          if (vehicle.make) {
+            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.make.toLowerCase()}\\y'`);
+            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.make.charAt(0).toUpperCase() + vehicle.make.slice(1).toLowerCase()}\\y'`);
+          }
+          if (vehicle.model) {
+            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.model.toLowerCase()}\\y'`);
+            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.model.charAt(0).toUpperCase() + vehicle.model.slice(1).toLowerCase()}\\y'`);
+          }
+          if (vehicle.year) {
+            vehicleConditions.push(`compatibility::text ILIKE '%${vehicle.year}%'`);
+          }
+
+          if (vehicleConditions.length > 0) {
+            q = q.or(vehicleConditions.join(','));
+            // console.log('🔍 Vehicle filter conditions applied:', vehicleConditions.length, 'conditions for', vehicle); // Disabled for performance
+          }
+        }
+
         // Enhanced search functionality with vehicle compatibility
         if (filters.search) {
           const parsed = parseSearchQuery(filters.search);
           const searchConditions = [];
-          
-          console.log('🔍 Parsed search:', parsed);
+
+          // console.log('🔍 Parsed search:', parsed); // Disabled for performance
 
           // If we have vehicle information, use compatibility search
           if (parsed.hasVehicleInfo) {
@@ -498,13 +559,14 @@ const ProductService = {
           query = query.order('created_at', { ascending: false });
       }
 
-      // Pagination
-      if (filters.page && filters.limit) {
-        const start = (filters.page - 1) * filters.limit;
-        const end = start + filters.limit - 1;
+      // Pagination - default to showing more products
+      const limit = filters.limit || 50; // Default to 50 products if no limit specified
+      if (filters.page) {
+        const start = (filters.page - 1) * limit;
+        const end = start + limit - 1;
         query = query.range(start, end);
-      } else if (filters.limit) {
-        query = query.limit(filters.limit);
+      } else {
+        query = query.limit(limit);
       }
 
       // Execute in parallel
@@ -513,12 +575,104 @@ const ProductService = {
         countQuery
       ]);
 
+      // If vehicle search returns no results, try a broader search
+      let fallbackProducts = null;
+      let fallbackCount = 0;
+      if (filters.vehicle && (!products || products.length === 0) && filters.search) {
+        console.log('🔄 Vehicle search returned no results, trying broader search...');
+
+        // Create a fallback query without vehicle filter but with search term
+        const fallbackFilters = { ...filters };
+        delete fallbackFilters.vehicle;
+
+        const fallbackQuery = supabase
+          .from('products')
+          .select(`
+            id,
+            name,
+            description,
+            short_description,
+            sku,
+            part_number,
+            price,
+            discount_price,
+            cost_price,
+            stock_quantity,
+            condition,
+            status,
+            is_active,
+            created_at,
+            updated_at,
+            dealer_id,
+            category_id,
+            brand_id,
+            supplier_id,
+            subcategory_id,
+            specifications,
+            compatibility,
+            warranty_info,
+            shipping,
+            product_images!left(id, url, is_primary)
+          `);
+
+        const fallbackCountQuery = supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true });
+
+        // Apply basic filters without vehicle
+        const applyBasicFilters = (q) => {
+          q = q.eq('status', 'approved').eq('is_active', true);
+
+          if (fallbackFilters.search) {
+            const searchTerm = fallbackFilters.search.toLowerCase();
+            q = q.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,short_description.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,part_number.ilike.%${searchTerm}%`);
+          }
+
+          return q;
+        };
+
+        const fallbackQueryWithFilters = applyBasicFilters(fallbackQuery);
+        const fallbackCountQueryWithFilters = applyBasicFilters(fallbackCountQuery);
+
+        // Add pagination
+        if (fallbackFilters.page && fallbackFilters.limit) {
+          const start = (fallbackFilters.page - 1) * fallbackFilters.limit;
+          const end = start + fallbackFilters.limit - 1;
+          fallbackQueryWithFilters.range(start, end);
+        }
+
+        const [{ data: fallbackData, error: fallbackError }, { count: fallbackCountData, error: fallbackCountError }] = await Promise.all([
+          fallbackQueryWithFilters,
+          fallbackCountQueryWithFilters
+        ]);
+
+        if (!fallbackError && fallbackData && fallbackData.length > 0) {
+          fallbackProducts = fallbackData;
+          fallbackCount = fallbackCountData || 0;
+          console.log(`🔄 Fallback search found ${fallbackProducts.length} products`);
+        }
+      }
+
       if (productsError || countError) {
-        throw productsError || countError;
+        // If main query failed but we have fallback results, use them
+        if (fallbackProducts && fallbackProducts.length > 0) {
+          console.log('🔄 Using fallback results due to main query error');
+        } else {
+          throw productsError || countError;
+        }
+      }
+
+      // Use fallback results if main query returned no results
+      const finalProducts = (products && products.length > 0) ? products : (fallbackProducts || []);
+      const finalCount = (products && products.length > 0) ? count : fallbackCount;
+
+      if (!finalProducts || finalProducts.length === 0) {
+        console.log('No products found');
+        return { success: true, products: [], count: 0, totalCount: 0 };
       }
 
       // Enhanced transformation with real schema and vehicle compatibility
-      const transformedData = products.map(product => {
+      const transformedData = finalProducts.map(product => {
         const primaryImg = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
         
         // Use existing compatibility data or generate it
@@ -665,7 +819,8 @@ const ProductService = {
       const result = {
         success: true,
         products: sanitizedProducts,
-        count: count || 0,
+        count: finalCount || 0,
+        totalCount: finalCount || 0, // Add totalCount for compatibility
         hasMore: filters.limit ? sanitizedProducts.length === filters.limit : false,
         filters: {
           applied: filters,
@@ -674,7 +829,26 @@ const ProductService = {
       };
 
       setCache(cacheKey, result);
-      console.log('ProductService: Returning', transformedData.length, 'products, total:', count);
+      // Reduced logging for performance
+      if (filters.vehicle || filters.search) {
+        console.log('ProductService: Returning', transformedData.length, 'products, total:', finalCount);
+      }
+
+      // Debug logging for vehicle searches
+      if (filters.vehicle) {
+        console.log('🚗 Vehicle search results:', {
+          vehicle: filters.vehicle,
+          totalFound: finalCount,
+          productsReturned: transformedData.length,
+          usedFallback: finalProducts === fallbackProducts,
+          sampleProducts: transformedData.slice(0, 3).map(p => ({
+            name: p.name,
+            sku: p.sku,
+            compatibility: p.compatibility
+          }))
+        });
+      }
+
       return result;
 
     } catch (error) {
@@ -1072,6 +1246,33 @@ const ProductService = {
       if (error) throw error;
       if (!product) return { success: false, error: 'Product not found' };
 
+      // Fetch supplier/dealer information separately
+      let supplierInfo = null;
+      if (product.supplier_id) {
+        try {
+          const { data: supplier, error: supplierError } = await supabase
+            .from('suppliers')
+            .select(`
+              id,
+              business_name,
+              company_name,
+              full_name,
+              name,
+              city,
+              state,
+              verification_status
+            `)
+            .eq('id', product.supplier_id)
+            .single();
+
+          if (!supplierError && supplier) {
+            supplierInfo = supplier;
+          }
+        } catch (supplierErr) {
+          console.log('Could not fetch supplier info:', supplierErr);
+        }
+      }
+
       // Ensure compatibility data exists
       let vehicleCompatibility = [];
       if (product.compatibility) {
@@ -1106,7 +1307,7 @@ const ProductService = {
         category: product.categories,
         subcategory: product.subcategories,
         brand: product.brands,
-        dealer: product.dealers,
+        dealer: supplierInfo,
         vehicleCompatibility,
         compatibility: vehicleCompatibility,
         stock_quantity: product.stock_quantity,

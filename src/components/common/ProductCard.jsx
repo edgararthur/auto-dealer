@@ -22,9 +22,9 @@ import { formatPrice, formatDiscount, getCurrentCurrency } from '../../utils/pri
  * Amazon/eBay Style ProductCard Component
  * Ultra-clean, minimal design following industry standards
  */
-const ProductCard = memo(({ 
-  product, 
-  className = '', 
+const ProductCard = memo(({
+  product,
+  className = '',
   showQuickView = false,
   layout = 'grid' // 'grid' or 'list'
 }) => {
@@ -85,12 +85,14 @@ const ProductCard = memo(({
             {/* Product Image */}
             <div className="relative flex-shrink-0 w-32 h-32 bg-white border border-gray-100 rounded overflow-hidden">
               <Link to={`/products/${product.id}`} className="block w-full h-full">
-                <OptimizedImage
+                <ProductImage
                   src={product.image || product.image_url}
                   alt={product.name}
                   className="w-full h-full object-contain p-2"
                   onLoad={() => setImageLoaded(true)}
-                  fallback="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80"
+                  fallbackSrc="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80"
+                  width={300}
+                  height={300}
                 />
               </Link>
               

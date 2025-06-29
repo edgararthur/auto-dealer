@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 // import performanceMonitor from './utils/performanceMonitor';
-import './utils/testConnection';
+// import './utils/testConnection'; // Disabled to prevent frequent reloads
 import { initializeCurrency } from './utils/priceFormatter.js';
 
 // Register service worker for caching and offline support

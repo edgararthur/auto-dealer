@@ -21,7 +21,8 @@ const LiveSearch = ({
   placeholder = "Search for auto parts, vehicles, or part numbers...",
   showResults = true,
   filters = {},
-  className = ''
+  className = '',
+  initialQuery = ''
 }) => {
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState([]);
@@ -62,7 +63,7 @@ const LiveSearch = ({
       const searchFilters = {
         ...filters,
         search: searchQuery,
-        limit: 24, // Show more products for live search
+        limit: 48, // Show more products for live search
         sortBy: 'relevance'
       };
 
@@ -166,6 +167,23 @@ const LiveSearch = ({
       console.warn('Failed to load search history:', error);
     }
   }, []);
+
+  // Set initial query and trigger search
+  useEffect(() => {
+    if (initialQuery && initialQuery !== query) {
+      console.log('🔄 LiveSearch: Setting initial query:', initialQuery);
+      setQuery(initialQuery);
+      debouncedSearch(initialQuery);
+    }
+  }, [initialQuery, debouncedSearch, query]);
+
+  // Trigger search when filters change (especially vehicle filter)
+  useEffect(() => {
+    if (query.trim() && filters.vehicle) {
+      console.log('🔄 LiveSearch: Vehicle filter changed, re-searching with:', filters.vehicle);
+      debouncedSearch(query);
+    }
+  }, [filters.vehicle, debouncedSearch, query]);
 
   // Handle search history click
   const handleHistoryClick = (historyQuery) => {
