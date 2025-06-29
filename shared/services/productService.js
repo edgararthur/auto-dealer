@@ -1,4 +1,5 @@
 import supabase from '../supabase/supabaseClient.js';
+import { sanitizeProducts, sanitizeProduct } from '../../src/utils/textSanitizer.js';
 
 // Simple in-memory cache
 const cache = new Map();
@@ -658,11 +659,14 @@ const ProductService = {
         })));
       }
 
+      // Sanitize product text content to remove eBay references and unprofessional language
+      const sanitizedProducts = sanitizeProducts(transformedData);
+
       const result = {
         success: true,
-        products: transformedData,
+        products: sanitizedProducts,
         count: count || 0,
-        hasMore: filters.limit ? transformedData.length === filters.limit : false,
+        hasMore: filters.limit ? sanitizedProducts.length === filters.limit : false,
         filters: {
           applied: filters,
           parsed: filters.search ? parseSearchQuery(filters.search) : null
@@ -1115,7 +1119,10 @@ const ProductService = {
         updatedAt: product.updated_at
       };
 
-      const result = { success: true, product: transformedProduct };
+      // Sanitize product text content to remove eBay references and unprofessional language
+      const sanitizedProduct = sanitizeProduct(transformedProduct);
+
+      const result = { success: true, product: sanitizedProduct };
       setCache(cacheKey, result);
       return result;
 
