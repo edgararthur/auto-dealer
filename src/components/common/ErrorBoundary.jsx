@@ -1,99 +1,173 @@
 import React from 'react';
-import { FiAlertTriangle, FiRefreshCw, FiHome } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
+import { FiRefreshCw, FiAlertTriangle, FiHome, FiAlertCircle } from 'react-icons/fi';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { 
+      hasError: false, 
+      error: null, 
+      errorInfo: null,
+      retryCount: 0
+    };
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error details for debugging
+    console.error('Error Boundary caught an error:', error, errorInfo);
+    
     this.setState({
-      error: error,
-      errorInfo: errorInfo
+      error,
+      errorInfo,
+      hasError: true
     });
 
-    // In production, you would send this to an error reporting service
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error caught by boundary:', error, errorInfo);
-    }
-
-    // Log to external service in production
-    if (process.env.NODE_ENV === 'production') {
-      // Send to error tracking service (Sentry, LogRocket, etc.)
-      // logErrorToService(error, errorInfo);
+    // Log error to monitoring service
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
+        description: error.toString(),
+        fatal: false
+      });
     }
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState(prevState => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: prevState.retryCount + 1
+    }));
+  };
+
+  handleReportError = () => {
+    const { error, errorInfo } = this.state;
+    const errorData = {
+      error: error?.toString(),
+      stack: error?.stack,
+      componentStack: errorInfo?.componentStack,
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+
+    // Here you would send to your error reporting service
+    console.log('Error report:', errorData);
+    
+    // For now, just copy to clipboard
+    navigator.clipboard.writeText(JSON.stringify(errorData, null, 2))
+      .then(() => alert('Error details copied to clipboard'))
+      .catch(() => console.error('Failed to copy error details'));
   };
 
   render() {
     if (this.state.hasError) {
-      const { fallback: Fallback } = this.props;
-      
-      // If a custom fallback component is provided, use it
-      if (Fallback) {
-        return <Fallback error={this.state.error} retry={this.handleRetry} />;
-      }
+      const { error, retryCount } = this.state;
+      const isRecurringError = retryCount >= 3;
 
-      // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center">
-                <FiAlertTriangle className="w-8 h-8 text-error-600" />
+            {/* Error Icon */}
+            <div className="mb-6">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                <FiAlertTriangle className="w-8 h-8 text-red-600" />
               </div>
             </div>
+
+            {/* Error Message */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {isRecurringError ? 'Persistent Error' : 'Something went wrong'}
+            </h2>
             
-            <h1 className="text-2xl font-bold text-neutral-900 mb-4">
-              Oops! Something went wrong
-            </h1>
-            
-            <p className="text-neutral-600 mb-8">
-              We're sorry for the inconvenience. An unexpected error has occurred. 
-              Please try refreshing the page or return to the home page.
+            <p className="text-gray-600 mb-6">
+              {isRecurringError 
+                ? 'We\'ve encountered the same error multiple times. Please try refreshing the page or contact support.'
+                : 'An unexpected error occurred. This might be a temporary issue.'
+              }
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={this.handleRetry}
-                className="flex items-center justify-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium"
-              >
-                <FiRefreshCw className="w-4 h-4 mr-2" />
-                Try Again
-              </button>
-              
-              <Link
-                to="/"
-                className="flex items-center justify-center px-6 py-3 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors duration-200 font-medium"
-              >
-                <FiHome className="w-4 h-4 mr-2" />
-                Go Home
-              </Link>
-            </div>
-            
-            {/* Show error details in development */}
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="mt-8 text-left bg-neutral-100 rounded-lg p-4">
-                <summary className="cursor-pointer text-sm font-medium text-neutral-700 mb-2">
-                  Error Details (Development Only)
-                </summary>
-                <pre className="text-xs text-neutral-600 overflow-auto">
-                  {this.state.error.toString()}
-                  {this.state.errorInfo.componentStack}
+
+            {/* Error Details (Development) */}
+            {process.env.NODE_ENV === 'development' && error && (
+              <div className="mb-6 p-4 bg-gray-100 rounded-lg text-left">
+                <h3 className="font-semibold text-sm text-gray-900 mb-2">Error Details:</h3>
+                <pre className="text-xs text-red-600 whitespace-pre-wrap overflow-auto max-h-32">
+                  {error.toString()}
                 </pre>
-              </details>
+              </div>
             )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {!isRecurringError && (
+                <button
+                  onClick={this.handleRetry}
+                  className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  <FiRefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </button>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="flex-1 flex items-center justify-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium rounded-lg transition-colors duration-200"
+                >
+                  <FiHome className="w-4 h-4 mr-2" />
+                  Go Home
+                </button>
+
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex-1 flex items-center justify-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium rounded-lg transition-colors duration-200"
+                >
+                  <FiRefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </button>
+              </div>
+
+              {/* Report Error Button */}
+              <button
+                onClick={this.handleReportError}
+                className="w-full flex items-center justify-center px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200 text-sm"
+              >
+                <FiAlertCircle className="w-4 h-4 mr-2" />
+                Report Error
+              </button>
+            </div>
+
+            {/* Retry Counter */}
+            {retryCount > 0 && (
+              <p className="mt-4 text-xs text-gray-500">
+                Retry attempts: {retryCount}
+              </p>
+            )}
+          </div>
+
+          {/* Additional Help */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-500 mb-2">
+              Still having issues?
+            </p>
+            <div className="flex items-center justify-center space-x-4 text-sm">
+              <a 
+                href="mailto:support@autora.com" 
+                className="text-blue-600 hover:text-blue-700 underline"
+              >
+                Contact Support
+              </a>
+              <span className="text-gray-300">|</span>
+              <a 
+                href="/help" 
+                className="text-blue-600 hover:text-blue-700 underline"
+              >
+                Help Center
+              </a>
+            </div>
           </div>
         </div>
       );
@@ -103,15 +177,30 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Higher-order component for wrapping components with error boundary
-export const withErrorBoundary = (Component, fallback) => {
+// HOC for wrapping components with error boundaries
+export const withErrorBoundary = (Component, errorFallback) => {
   return function WrappedComponent(props) {
     return (
-      <ErrorBoundary fallback={fallback}>
+      <ErrorBoundary fallback={errorFallback}>
         <Component {...props} />
       </ErrorBoundary>
     );
   };
+};
+
+// Hook for programmatic error handling
+export const useErrorHandler = () => {
+  return React.useCallback((error, errorInfo) => {
+    console.error('Handled error:', error);
+    
+    // You can implement custom error reporting here
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
+        description: error.toString(),
+        fatal: false
+      });
+    }
+  }, []);
 };
 
 export default ErrorBoundary; 

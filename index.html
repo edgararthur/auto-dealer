@@ -2,13 +2,178 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Autora - Auto Parts Marketplace</title>
-    <meta name="description" content="Shop for automotive parts and accessories at Autora" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com">
+    
+    <!-- Favicon and app icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /> -->
+    <!-- <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /> -->
+    <!-- <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /> -->
+    <!-- <link rel="manifest" href="/site.webmanifest" /> -->
+    
+    <!-- Primary Meta Tags -->
+    <title>Autora - Premium Auto Parts Marketplace | Shop Quality Automotive Parts</title>
+    <meta name="title" content="Autora - Premium Auto Parts Marketplace | Shop Quality Automotive Parts" />
+    <meta name="description" content="Shop premium automotive parts and accessories at Autora. Find parts by vehicle make, model, and year from trusted dealers. Fast shipping, competitive prices, quality guaranteed." />
+    <meta name="keywords" content="auto parts, automotive parts, car parts, vehicle parts, brake pads, engine parts, filters, oil, batteries, tires, automotive accessories, car maintenance" />
+    <meta name="author" content="Autora" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="language" content="English" />
+    <meta name="theme-color" content="#2563eb" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://autora.com/" />
+    <meta property="og:title" content="Autora - Premium Auto Parts Marketplace" />
+    <meta property="og:description" content="Shop premium automotive parts and accessories at Autora. Find parts by vehicle make, model, and year from trusted dealers." />
+    <meta property="og:image" content="https://autora.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Autora - Premium Auto Parts Marketplace" />
+    <meta property="og:site_name" content="Autora" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://autora.com/" />
+    <meta property="twitter:title" content="Autora - Premium Auto Parts Marketplace" />
+    <meta property="twitter:description" content="Shop premium automotive parts and accessories at Autora. Find parts by vehicle make, model, and year from trusted dealers." />
+    <meta property="twitter:image" content="https://autora.com/twitter-image.jpg" />
+    <meta property="twitter:image:alt" content="Autora - Premium Auto Parts Marketplace" />
+    <meta property="twitter:creator" content="@autora" />
+    <meta property="twitter:site" content="@autora" />
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#2563eb" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Schema.org Structured Data for E-commerce -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Autora",
+      "description": "Premium automotive parts marketplace",
+      "url": "https://autora.com",
+      "logo": "https://autora.com/logo.png",
+      "sameAs": [
+        "https://facebook.com/autora",
+        "https://twitter.com/autora",
+        "https://instagram.com/autora"
+      ],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://autora.com/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Autora",
+      "description": "Premium automotive parts marketplace connecting buyers with quality dealers",
+      "url": "https://autora.com",
+      "logo": "https://autora.com/logo.png",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "US"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-555-AUTO-PARTS",
+        "contactType": "customer service",
+        "availableLanguage": "English"
+      },
+      "sameAs": [
+        "https://facebook.com/autora",
+        "https://twitter.com/autora",
+        "https://instagram.com/autora"
+      ]
+    }
+    </script>
+    
+    <!-- Performance optimizations -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//images.unsplash.com">
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    
+    <!-- Critical CSS would be inlined here in production -->
+    <style>
+      /* Critical above-the-fold styles */
+      html { font-family: system-ui, -apple-system, sans-serif; }
+      body { margin: 0; background: #fff; }
+      #root { min-height: 100vh; }
+      .loading-screen { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh; 
+        background: #f9fafb;
+      }
+    </style>
+    
+    <!-- Google Analytics (replace with your tracking ID) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_TRACKING_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_TRACKING_ID');
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <noscript>
+      <div style="text-align: center; padding: 2rem; font-family: system-ui;">
+        <h1>JavaScript Required</h1>
+        <p>This application requires JavaScript to function properly. Please enable JavaScript in your browser settings.</p>
+        <p>For the best automotive parts shopping experience, please use a modern browser with JavaScript enabled.</p>
+      </div>
+    </noscript>
+    
+    <div id="root">
+      <div class="loading-screen">
+        <div style="text-align: center;">
+          <div style="width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top: 3px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+          <div style="color: #6b7280; font-weight: 500;">Loading Autora...</div>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html> 

@@ -82,4 +82,28 @@ export const getFormErrors = (formData, validationRules) => {
   });
   
   return errors;
+};
+
+// Format price in Ghana Cedis
+export const formatPrice = (price) => {
+  if (!price && price !== 0) return 'Contact for price';
+  
+  return new Intl.NumberFormat('en-GH', {
+    style: 'currency',
+    currency: 'GHS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(price);
+};
+
+// Alternative cedis symbol formatting (if needed)
+export const formatPriceWithSymbol = (price) => {
+  if (!price && price !== 0) return 'Contact for price';
+  
+  const formatted = new Intl.NumberFormat('en-GH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(price);
+  
+  return `₵${formatted}`;
 }; 

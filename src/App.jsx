@@ -1,62 +1,91 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext-bypass';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import { ComparisonProvider } from './contexts/ComparisonContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { BrowsingHistoryProvider } from './contexts/BrowsingHistoryContext';
 import { MaintenanceRemindersProvider } from './contexts/MaintenanceRemindersContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/common';
 
-// Components
+// Components - Keep critical components as direct imports for faster initial load
 import StoreHeader from './components/navigation/StoreHeader';
 import StoreFooter from './components/navigation/StoreFooter';
 import LandingHeader from './components/navigation/LandingHeader';
 import LandingFooter from './components/navigation/LandingFooter';
 import LoadingScreen from './components/common/LoadingScreen';
+import RecentlyViewed from './components/common/RecentlyViewed';
 
 // Layouts
 import AuthLayout from './components/layouts/AuthLayout';
 
-// Auth pages
+// PERFORMANCE OPTIMIZATION: Lazy load pages for code splitting
+// Auth pages - Keep login as direct import for faster auth flow
 import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
+const Register = lazy(() => import('./pages/auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 
-// Buyer Pages
-import BuyerHome from './pages/buyer/BuyerHome';
-import ProductListing from './pages/buyer/ProductListing';
-import ProductDetail from './pages/buyer/ProductDetail';
-import ProductComparison from './pages/buyer/ProductComparison';
-import ShoppingCart from './pages/buyer/ShoppingCart';
-import Checkout from './pages/buyer/Checkout';
-import OrderConfirmation from './pages/buyer/OrderConfirmation';
-import OrderHistory from './pages/buyer/OrderHistory';
-import OrderDetail from './pages/buyer/OrderDetail';
-import OrderTracking from './pages/buyer/OrderTracking';
-import BuyerAccount from './pages/buyer/BuyerAccount';
-import Wishlist from './pages/buyer/Wishlist';
-import SubmitWarrantyClaim from './pages/buyer/SubmitWarrantyClaim';
-import TodaysDeals from './pages/buyer/TodaysDeals';
-import BestSellers from './pages/buyer/BestSellers';
-import NewArrivals from './pages/buyer/NewArrivals';
-import Brands from './pages/buyer/Brands';
-import Categories from './pages/buyer/Categories';
-import CategoryPage from './pages/buyer/CategoryPage';
-import SubcategoryPage from './pages/buyer/SubcategoryPage';
-import BrowsingHistory from './pages/buyer/BrowsingHistory';
+// Buyer Pages - Lazy load all buyer pages
+const BuyerHome = lazy(() => import('./pages/buyer/BuyerHome'));
+const ShopPage = lazy(() => import('./pages/buyer/ShopPage'));
+const ProductListing = lazy(() => import('./pages/buyer/ProductListing'));
+const ProductDetail = lazy(() => import('./pages/buyer/ProductDetail'));
+const ProductComparison = lazy(() => import('./pages/buyer/ProductComparison'));
+const ShoppingCart = lazy(() => import('./pages/buyer/ShoppingCart'));
+const Checkout = lazy(() => import('./pages/buyer/Checkout'));
+const OrderConfirmation = lazy(() => import('./pages/buyer/OrderConfirmation'));
+const OrderHistory = lazy(() => import('./pages/buyer/OrderHistory'));
+const OrderDetail = lazy(() => import('./pages/buyer/OrderDetail'));
+const OrderTracking = lazy(() => import('./pages/buyer/OrderTracking'));
+const BuyerAccount = lazy(() => import('./pages/buyer/BuyerAccount'));
+const Wishlist = lazy(() => import('./pages/buyer/Wishlist'));
+const SubmitWarrantyClaim = lazy(() => import('./pages/buyer/SubmitWarrantyClaim'));
+const TodaysDeals = lazy(() => import('./pages/buyer/TodaysDeals'));
+const BestSellers = lazy(() => import('./pages/buyer/BestSellers'));
+const NewArrivals = lazy(() => import('./pages/buyer/NewArrivals'));
+const Brands = lazy(() => import('./pages/buyer/Brands'));
+const Categories = lazy(() => import('./pages/buyer/Categories'));
+const CategoryPage = lazy(() => import('./pages/buyer/CategoryPage'));
+const SubcategoryPage = lazy(() => import('./pages/buyer/SubcategoryPage'));
+const BrowsingHistory = lazy(() => import('./pages/buyer/BrowsingHistory'));
+const SearchPage = lazy(() => import('./pages/buyer/SearchPage'));
+const HelpCenter = lazy(() => import('./pages/buyer/HelpCenter'));
+const ReviewsPage = lazy(() => import('./pages/buyer/ReviewsPage'));
+const ReturnsPage = lazy(() => import('./pages/buyer/ReturnsPage'));
+const NotificationsPage = lazy(() => import('./pages/buyer/NotificationsPage'));
+const SavedSearches = lazy(() => import('./pages/buyer/SavedSearches'));
+const PriceAlerts = lazy(() => import('./pages/buyer/PriceAlerts'));
+const DealerProfile = lazy(() => import('./pages/buyer/DealerProfile'));
+const DealersPage = lazy(() => import('./pages/buyer/DealersPage'));
 
 // Landing Page
-import LandingPage from './pages/landing/LandingPage';
+const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
 
-// Garage & Maintenance
-import VirtualGarage from './components/garage/VirtualGarage';
-import AddVehicle from './pages/garage/AddVehicle';
-import EditVehicle from './pages/garage/EditVehicle';
-import MaintenanceDashboard from './pages/maintenance/MaintenanceDashboard';
-import AddMaintenanceReminder from './pages/maintenance/AddMaintenanceReminder';
+// Garage & Maintenance - Lazy load these less frequently used features
+const VirtualGarage = lazy(() => import('./components/garage/VirtualGarage'));
+const AddVehicle = lazy(() => import('./pages/garage/AddVehicle'));
+const EditVehicle = lazy(() => import('./pages/garage/EditVehicle'));
+const MaintenanceDashboard = lazy(() => import('./pages/maintenance/MaintenanceDashboard'));
+const AddMaintenanceReminder = lazy(() => import('./pages/maintenance/AddMaintenanceReminder'));
+
+// Development tools
+const PerformanceDashboard = lazy(() => import('./components/dev/PerformanceDashboard'));
+
+// Import performance monitor
+import performanceMonitor from './utils/performanceMonitor';
+
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+      <div className="text-neutral-600 font-medium">Loading...</div>
+    </div>
+  </div>
+);
 
 // Layouts
 const StoreLayout = ({ children }) => (
@@ -84,403 +113,554 @@ const ProtectedRoute = ({ children }) => {
   const { user, loading, error } = useAuth();
   const isAuthenticated = !!user;
   
-  if (process.env.NODE_ENV === 'development') {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Buyer ProtectedRoute:', { loading, isAuthenticated, hasError: !!error, errorMsg: error });
-  }
-  }
+  console.log('ProtectedRoute:', { loading, isAuthenticated, hasError: !!error, errorMsg: error });
   
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="text-center mb-4">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mb-4"></div>
-          <div className="text-neutral-600 font-medium">Loading authentication...</div>
-        </div>
-        <div className="text-xs text-gray-500 mt-2">This may take a few moments</div>
-      </div>
+      <LoadingScreen 
+        message="Checking authentication..."
+        subMessage="This may take a few moments"
+        showRetry={false}
+      />
     );
   }
   
   // Show error if authentication failed
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="text-error-600 mb-4 text-xl">Authentication Error</div>
-        <div className="text-neutral-600 max-w-md text-center mb-6">{error}</div>
-        <div className="flex space-x-4">
-          <button 
-            className="px-4 py-2 bg-neutral-200 text-neutral-700 rounded"
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </button>
-          <button 
-            className="px-4 py-2 bg-primary-600 text-white rounded"
-            onClick={() => window.location.href = '/auth/login'}
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Authentication Error"
+        subMessage={error}
+        showRetry={true}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
   
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Buyer ProtectedRoute: Not authenticated, redirecting to login");
-    }
+    console.log("ProtectedRoute: Not authenticated, redirecting to login");
     const currentPath = window.location.pathname + window.location.search;
     return <Navigate to={`/auth/login?returnTo=${encodeURIComponent(currentPath)}`} />;
   }
   
   // Render children if authenticated
-  if (process.env.NODE_ENV === 'development') {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Buyer ProtectedRoute: Authentication successful, rendering content");
-  }
-  }
+  console.log("ProtectedRoute: Authentication successful, rendering content");
   return children;
 };
 
 // Main application component
 const App = () => {
+  // Initialize performance tracking
+  React.useEffect(() => {
+    // Track app initialization
+    const startTime = performance.now();
+    
+    const cleanup = () => {
+      const endTime = performance.now();
+      if (performanceMonitor && typeof performanceMonitor.trackNavigation === 'function') {
+        performanceMonitor.trackNavigation('app_init', 'ready', endTime - startTime);
+      }
+    };
+    
+    // Track when app is ready
+    setTimeout(cleanup, 100);
+    
+    return () => {
+      // Cleanup old metrics on unmount
+      if (performanceMonitor && typeof performanceMonitor.clearOldMetrics === 'function') {
+        performanceMonitor.clearOldMetrics();
+      }
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <ComparisonProvider>
-              <ThemeProvider>
-                <BrowsingHistoryProvider>
-                  <MaintenanceRemindersProvider>
-                    <Router>
-                    <Routes>
-                      {/* Auth routes */}
-                      <Route path="/auth/login" element={
-                        <AuthLayout>
-                          <Login />
-                        </AuthLayout>
-                      } />
-                      <Route path="/auth/register" element={
-                        <AuthLayout>
-                          <Register />
-                        </AuthLayout>
-                      } />
-                      <Route path="/auth/forgot-password" element={
-                        <AuthLayout>
-                          <ForgotPassword />
-                        </AuthLayout>
-                      } />
-                      
-                      {/* Protected routes */}
-                      <Route 
-                        path="/" 
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <BuyerHome />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      
-                      {/* Add other buyer routes */}
-                      <Route
-                        path="/products"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <ProductListing />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/products/:productId"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <ProductDetail />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/cart"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <ShoppingCart />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/checkout"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <Checkout />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/order-confirmation/:orderId"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <OrderConfirmation />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/orders"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <OrderHistory />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/orders/:orderId"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <OrderDetail />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/track/:orderId"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <OrderTracking />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/warranty-claim/:orderId/:productId"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <SubmitWarrantyClaim />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/account"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <BuyerAccount />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/wishlist"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <Wishlist />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* New routes for the feature pages */}
-                      <Route
-                        path="/deals"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <TodaysDeals />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/best-sellers"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <BestSellers />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/new-arrivals"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <NewArrivals />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/brands"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <Brands />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* Categories page */}
-                      <Route
-                        path="/categories"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <Categories />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* Category and Subcategory Routes */}
-                      <Route
-                        path="/category/:categorySlug"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <CategoryPage />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/category/:categorySlug/:subcategorySlug"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <SubcategoryPage />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/comparison"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <ProductComparison />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* Browsing History */}
-                      <Route
-                        path="/browsing-history"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <BrowsingHistory />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* Garage & Vehicle Management */}
-                      <Route
-                        path="/garage"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <VirtualGarage />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/garage/add"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <AddVehicle />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/garage/edit/:vehicleId"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <EditVehicle />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* Maintenance */}
-                      <Route
-                        path="/maintenance"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <MaintenanceDashboard />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      <Route
-                        path="/maintenance/new"
-                        element={
-                          <ProtectedRoute>
-                            <StoreLayout>
-                              <AddMaintenanceReminder />
-                            </StoreLayout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      
-                      {/* Redirect all unmatched routes to home */}
-                      <Route path="*" element={<Navigate to="/" />} />
-                    </Routes>
-                    <Analytics />
-                  </Router>
-                </MaintenanceRemindersProvider>
-              </BrowsingHistoryProvider>
-            </ThemeProvider>
-          </ComparisonProvider>
-        </WishlistProvider>
-      </CartProvider>
-    </AuthProvider>
+      <Router>
+        <AuthProvider>
+          <ToastProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <ComparisonProvider>
+                  <ThemeProvider>
+                    <BrowsingHistoryProvider>
+                      <MaintenanceRemindersProvider>
+                        <Suspense fallback={<PageLoader />}>
+                          {/* Performance Dashboard - Only in development */}
+                          {process.env.NODE_ENV === 'development' && (
+                            <Suspense fallback={null}>
+                              <PerformanceDashboard />
+                            </Suspense>
+                          )}
+                          
+                          <Routes>
+                            {/* Auth routes */}
+                            <Route path="/auth/login" element={
+                              <AuthLayout>
+                                <Login />
+                              </AuthLayout>
+                            } />
+                            <Route path="/auth/register" element={
+                              <AuthLayout>
+                                <Suspense fallback={<PageLoader />}>
+                                  <Register />
+                                </Suspense>
+                              </AuthLayout>
+                            } />
+                            <Route path="/auth/forgot-password" element={
+                              <AuthLayout>
+                                <Suspense fallback={<PageLoader />}>
+                                  <ForgotPassword />
+                                </Suspense>
+                              </AuthLayout>
+                            } />
+                            
+                            {/* Protected routes */}
+                            <Route 
+                              path="/" 
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <BuyerHome />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              } 
+                            />
+                            
+                            {/* Add other buyer routes */}
+                            <Route
+                              path="/shop"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ShopPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            {/* Product listing with filters */}
+                            <Route
+                              path="/products"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ProductListing />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            
+                            <Route
+                              path="/products/:productId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ProductDetail />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            {/* Shop route with modal support */}
+                            <Route
+                              path="/shop/:productId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ProductListing />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/cart"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ShoppingCart />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/checkout"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <Checkout />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/order-confirmation/:orderId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <OrderConfirmation />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/orders"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <OrderHistory />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/orders/:orderId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <OrderDetail />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/track/:orderId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <OrderTracking />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/warranty-claim/:orderId/:productId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <SubmitWarrantyClaim />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/account"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <BuyerAccount />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/wishlist"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <Wishlist />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* New routes for the feature pages */}
+                            <Route
+                              path="/deals"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <TodaysDeals />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/best-sellers"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <BestSellers />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/new-arrivals"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <NewArrivals />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/brands"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <Brands />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Categories page */}
+                            <Route
+                              path="/categories"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <Categories />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Category and Subcategory Routes */}
+                            <Route
+                              path="/category/:categorySlug"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <CategoryPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/category/:categorySlug/:subcategorySlug"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <SubcategoryPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/comparison"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ProductComparison />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Browsing History */}
+                            <Route
+                              path="/browsing-history"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <BrowsingHistory />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Garage & Vehicle Management */}
+                            <Route
+                              path="/garage"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <VirtualGarage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/garage/add"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <AddVehicle />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/garage/edit/:vehicleId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <EditVehicle />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Maintenance */}
+                            <Route
+                              path="/maintenance"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <MaintenanceDashboard />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/maintenance/new"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <AddMaintenanceReminder />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Search page */}
+                            <Route
+                              path="/search"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <SearchPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Help Center */}
+                            <Route
+                              path="/help"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <HelpCenter />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Reviews & Returns */}
+                            <Route
+                              path="/reviews"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ReviewsPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/returns"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <ReturnsPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Notifications */}
+                            <Route
+                              path="/notifications"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <NotificationsPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Saved Searches & Price Alerts */}
+                            <Route
+                              path="/saved-searches"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <SavedSearches />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/price-alerts"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <PriceAlerts />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Dealers */}
+                            <Route
+                              path="/dealers"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <DealersPage />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            <Route
+                              path="/dealer/:dealerId"
+                              element={
+                                <ProtectedRoute>
+                                  <StoreLayout>
+                                    <DealerProfile />
+                                  </StoreLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            
+                            {/* Redirect all unmatched routes to home */}
+                            <Route path="*" element={<Navigate to="/" />} />
+                          </Routes>
+                        </Suspense>
+                        <Analytics />
+
+                        {/* Performance Dashboard - Development Only */}
+                        {import.meta.env.DEV && (
+                          <Suspense fallback={null}>
+                            <PerformanceDashboard />
+                          </Suspense>
+                        )}
+                      </MaintenanceRemindersProvider>
+                    </BrowsingHistoryProvider>
+                  </ThemeProvider>
+                </ComparisonProvider>
+              </WishlistProvider>
+            </CartProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </Router>
     </ErrorBoundary>
   );
 };

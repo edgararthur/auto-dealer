@@ -12,7 +12,13 @@ import {
   FiChevronRight, 
   FiClock, 
   FiMoreHorizontal, 
-  FiArrowRight 
+  FiArrowRight, 
+  FiX, 
+  FiEye, 
+  FiDownload, 
+  FiRefreshCw,
+  FiStar,
+  FiMessageCircle
 } from 'react-icons/fi';
 import { FaCreditCard } from 'react-icons/fa';
 import OrderService from '../../../shared/services/orderService';
@@ -28,41 +34,36 @@ const OrderHistory = () => {
   const [filter, setFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [sortBy, setSortBy] = useState('date_desc');
 
-  // Fetch orders on component mount
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
+    if (user) {
+      fetchOrders();
+    }
+  }, [user, filter, sortBy]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await OrderService.getUserOrders(user.id, {
+        limit: 50, // Get recent orders
+        offset: 0
+      });
+      
+      if (response.success) {
+        setOrders(response.orders || []);
+        setFilteredOrders(response.orders || []);
+      } else {
+        setError(response.error || 'Failed to fetch orders');
       }
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      try {
-        setLoading(true);
-        
-        const response = await OrderService.getUserOrders(user.id, {
-          limit: 50, // Get recent orders
-          offset: 0
-        });
-        
-        if (response.success) {
-          setOrders(response.orders || []);
-          setFilteredOrders(response.orders || []);
-        } else {
-          setError(response.error || 'Failed to fetch orders');
-        }
-      } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError('Failed to load orders. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, [user?.id]);
-
-  // Filter orders based on search, status filter, and time filter
   useEffect(() => {
     if (orders.length > 0) {
       let filtered = orders;
@@ -110,51 +111,45 @@ const OrderHistory = () => {
     }
   }, [filter, timeFilter, search, orders]);
 
-  // Format date
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Get status icon
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pending':
+        return <FiClock className="text-yellow-500" />;
       case 'confirmed':
-        return <FiPackage className="h-5 w-5 text-amber-500" />;
+        return <FiCheck className="text-blue-500" />;
       case 'shipped':
-      case 'in_transit':
-        return <FiTruck className="h-5 w-5 text-blue-500" />;
+        return <FiTruck className="text-purple-500" />;
       case 'delivered':
-        return <FiCheck className="h-5 w-5 text-emerald-500" />;
-      case 'canceled':
+        return <FiPackage className="text-green-500" />;
       case 'cancelled':
-        return <FiAlertCircle className="h-5 w-5 text-rose-500" />;
+        return <FiX className="text-red-500" />;
       default:
-        return <FiPackage className="h-5 w-5 text-gray-500" />;
+        return <FiClock className="text-gray-500" />;
     }
   };
 
-  // Get status badge class
-  const getStatusBadgeClass = (status) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       case 'confirmed':
-        return 'bg-amber-100 text-amber-800 border border-amber-200';
+        return 'bg-blue-100 text-blue-800';
       case 'shipped':
-      case 'in_transit':
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
+        return 'bg-purple-100 text-purple-800';
       case 'delivered':
-        return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
-      case 'canceled':
+        return 'bg-green-100 text-green-800';
       case 'cancelled':
-        return 'bg-rose-100 text-rose-800 border border-rose-200';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Get payment method icon
   const getPaymentMethodIcon = (method) => {
     if (method?.toLowerCase().includes('credit') || method?.toLowerCase().includes('debit') || method?.toLowerCase().includes('card')) {
       return <FaCreditCard className="h-4 w-4 text-purple-500" />;
@@ -162,7 +157,6 @@ const OrderHistory = () => {
     return <FiShoppingBag className="h-4 w-4 text-indigo-500" />;
   };
 
-  // Toggle expanded order
   const toggleOrderExpand = (orderId) => {
     if (expandedOrder === orderId) {
       setExpandedOrder(null);
@@ -216,7 +210,6 @@ const OrderHistory = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-      {/* Header with subtle animation */}
       <div className="mb-10 border-b border-gray-200 pb-6 animate-fade-in">
         <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Order History</h1>
         <p className="text-gray-600 max-w-3xl">
@@ -224,7 +217,6 @@ const OrderHistory = () => {
         </p>
       </div>
       
-      {/* Order summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="flex items-start">
@@ -281,80 +273,50 @@ const OrderHistory = () => {
         </div>
       </div>
       
-      {/* Advanced Filters & Search */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100 animate-fade-in" style={{ animationDelay: '0.5s' }}>
         <h2 className="text-lg font-medium text-gray-900 mb-4">Filter Orders</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                placeholder="Order ID or product name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          {/* Status filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiFilter className="h-5 w-5 text-gray-400" />
-              </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
               <select
-                className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
+                className="block w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Statuses</option>
+                <option value="all">All Orders</option>
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="shipped">Shipped</option>
-                <option value="in_transit">In Transit</option>
                 <option value="delivered">Delivered</option>
-                <option value="canceled">Cancelled</option>
+                <option value="cancelled">Cancelled</option>
               </select>
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <FiChevronRight className="h-5 w-5 text-gray-400 transform rotate-90" />
-              </div>
             </div>
-          </div>
-          
-          {/* Time filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiCalendar className="h-5 w-5 text-gray-400" />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
               <select
-                className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                value={timeFilter}
-                onChange={(e) => setTimeFilter(e.target.value)}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="block w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Time</option>
-                <option value="last-month">Last Month</option>
-                <option value="last-3-months">Last 3 Months</option>
-                <option value="last-6-months">Last 6 Months</option>
+                <option value="date_desc">Newest First</option>
+                <option value="date_asc">Oldest First</option>
+                <option value="amount_desc">Highest Amount</option>
+                <option value="amount_asc">Lowest Amount</option>
               </select>
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <FiChevronRight className="h-5 w-5 text-gray-400 transform rotate-90" />
-              </div>
             </div>
           </div>
+          <button
+            onClick={fetchOrders}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            <FiRefreshCw className="mr-2" size={16} />
+            Refresh
+          </button>
         </div>
       </div>
       
-      {/* Orders list */}
       {filteredOrders.length > 0 ? (
         <div className="space-y-6 animate-fade-in" style={{ animationDelay: '0.6s' }}>
           {filteredOrders.map((order) => (
@@ -364,12 +326,7 @@ const OrderHistory = () => {
             >
               <div className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center">
-                  <div className={`p-3 rounded-lg ${
-                    ['pending', 'confirmed'].includes(order.status) ? 'bg-amber-50' :
-                    ['shipped', 'in_transit'].includes(order.status) ? 'bg-blue-50' :
-                    order.status === 'delivered' ? 'bg-emerald-50' :
-                    'bg-rose-50'
-                  }`}>
+                  <div className={`p-3 rounded-lg ${getStatusColor(order.status)}`}>
                     {getStatusIcon(order.status)}
                   </div>
                   <div className="ml-4">
@@ -383,7 +340,7 @@ const OrderHistory = () => {
                 
                 <div className="flex items-center">
                   <div className="mr-6">
-                    <span className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${getStatusBadgeClass(order.status)}`}>
+                    <span className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${getStatusColor(order.status)}`}>
                       {order.status.replace('_', ' ')}
                     </span>
                   </div>
@@ -402,7 +359,6 @@ const OrderHistory = () => {
                 </div>
               </div>
               
-              {/* Expanded order details */}
               <div className={`transition-all duration-300 overflow-hidden ${
                 expandedOrder === order.id ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
               }`}>
@@ -438,7 +394,6 @@ const OrderHistory = () => {
                     </div>
                   </div>
                   
-                  {/* Order items */}
                   {order.items && order.items.length > 0 && (
                     <>
                       <h4 className="font-medium text-gray-900 mb-4">Order Items</h4>
@@ -480,7 +435,6 @@ const OrderHistory = () => {
                 </div>
               </div>
               
-              {/* Order summary (non-expanded) */}
               <div className={`border-t border-gray-100 p-4 bg-gray-50 flex items-center justify-between transition-opacity duration-300 ${
                 expandedOrder === order.id ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100'
               }`}>
@@ -540,7 +494,6 @@ const OrderHistory = () => {
         </div>
       )}
 
-      {/* Add custom keyframe animations */}
       <style>
         {`
           @keyframes fade-in {

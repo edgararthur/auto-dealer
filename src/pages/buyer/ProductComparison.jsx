@@ -1,305 +1,337 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiX, FiShoppingCart, FiHeart } from 'react-icons/fi';
+import { useSearchParams, Link } from 'react-router-dom';
+import { FiX, FiStar, FiShoppingCart, FiTruck, FiShield, FiCheck } from 'react-icons/fi';
 import ProductService from '../../../shared/services/productService';
-import { Breadcrumb, Button, EmptyState, Rating } from '../../components/common';
-import { useComparison } from '../../contexts/ComparisonContext';
 import { useCart } from '../../contexts/CartContext';
-import { useWishlist } from '../../contexts/WishlistContext';
 
 const ProductComparison = () => {
-  const navigate = useNavigate();
-  const { comparisonItems, removeFromComparison, clearComparison } = useComparison();
+  const [searchParams] = useSearchParams();
   const { addToCart } = useCart();
-  const { addToWishlist, isInWishlist } = useWishlist();
-  
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Fetch products data
+
   useEffect(() => {
     const fetchProducts = async () => {
-      if (comparisonItems.length === 0) {
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
-      
       try {
-        const productPromises = comparisonItems.map(id => 
+        setLoading(true);
+        const productIds = searchParams.get('products')?.split(',') || [];
+        
+        if (productIds.length === 0) {
+          setError('No products selected for comparison');
+          setLoading(false);
+          return;
+        }
+
+        const productPromises = productIds.map(id => 
           ProductService.getProductById(id)
         );
-        
+
         const results = await Promise.all(productPromises);
-        const fetchedProducts = results
-          .filter(res => res.success && res.product)
-          .map(res => res.product);
-          
-        setProducts(fetchedProducts);
-      } catch (err) {
-        console.error('Error fetching products for comparison:', err);
-        setError('Failed to load products for comparison. Please try again.');
-      } finally {
+        const validProducts = results
+          .filter(result => result.success)
+          .map(result => result.product);
+
+        setProducts(validProducts);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching products for comparison:', error);
+        setError('Failed to load products for comparison');
         setLoading(false);
       }
     };
-    
-    fetchProducts();
-  }, [comparisonItems]);
 
-  // Collect all possible specification keys across all products
-  const getSpecificationKeys = () => {
-    const keys = new Set();
-    products.forEach(product => {
-      if (product.specifications) {
-        product.specifications.forEach(spec => {
-          keys.add(spec.name);
-        });
-      }
-    });
-    return Array.from(keys);
-  };
-  
-  const specificationKeys = getSpecificationKeys();
-  
-  // Find specification value for a product
-  const getSpecValue = (product, specName) => {
-    if (!product.specifications) return '-';
+    fetchProducts();
+  }, [searchParams]);
+
+  const removeProduct = (productId) => {
+    const updatedProducts = products.filter(p => p.id !== productId);
+    setProducts(updatedProducts);
     
-    const spec = product.specifications.find(s => s.name === specName);
-    return spec ? spec.value : '-';
+    // Update URL
+    const newProductIds = updatedProducts.map(p => p.id).join(',');
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.set('products', newProductIds);
+    window.history.replaceState({}, '', newUrl);
   };
-  
-  // Handle removing a product from comparison
-  const handleRemoveProduct = (productId) => {
-    removeFromComparison(productId);
+
+  const handleAddToCart = (product) => {
+    addToCart(product);
   };
-  
-  // Handle adding to cart
-  const handleAddToCart = (productId) => {
-    addToCart(productId, 1);
-  };
-  
-  // Handle adding to wishlist
-  const handleAddToWishlist = (productId) => {
-    addToWishlist(productId);
-  };
-  
-  // Show loading state
+
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+          <p className="mt-6 text-gray-600 font-medium">Loading product comparison...</p>
         </div>
-      </div>
-    );
-  }
-  
-  // If comparison is empty
-  if (comparisonItems.length === 0 || products.length === 0) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <EmptyState
-          title="No Products to Compare"
-          description="Add products to compare them side by side."
-          actionText="Browse Products"
-          actionLink="/products"
-        />
       </div>
     );
   }
 
-  // If error occurred
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
-        </div>
-        <div className="mt-6 text-center">
-          <Button onClick={() => window.location.reload()} variant="primary">
-            Try Again
-          </Button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-medium mb-4">{error}</p>
+          <Link
+            to="/shop"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Products
+          </Link>
         </div>
       </div>
     );
   }
-  
+
+  if (products.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 font-medium mb-4">No products to compare</p>
+          <Link
+            to="/shop"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Products
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white min-h-screen">
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <Breadcrumb items={[
-            { name: 'Home', url: '/' },
-            { name: 'Products', url: '/products' },
-            { name: 'Compare', url: '#' }
-          ]} />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Comparison</h1>
+          <p className="text-gray-600">Compare prices and features from different dealers</p>
         </div>
-        
-        {/* Back button */}
-        <button 
-          onClick={() => navigate(-1)} 
-          className="mb-6 flex items-center text-neutral-500 hover:text-primary-600 transition-colors"
-        >
-          <FiArrowLeft className="mr-2" />
-          <span>Back</span>
-        </button>
-        
-        {/* Comparison header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Product Comparison</h1>
-          <Button onClick={clearComparison} variant="secondary" size="small">
-            Clear All
-          </Button>
-        </div>
-        
-        {/* Comparison table */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            {/* Header row with product info */}
-            <thead>
-              <tr>
-                <th className="w-48 p-4 bg-neutral-50 border"></th>
-                {products.map(product => (
-                  <th key={product.id} className="p-4 border text-left relative min-w-[250px]">
-                    <button 
-                      onClick={() => handleRemoveProduct(product.id)}
-                      className="absolute top-2 right-2 p-1 text-neutral-400 hover:text-red-500"
-                      aria-label="Remove from comparison"
-                    >
-                      <FiX />
-                    </button>
-                    <Link 
-                      to={`/products/${product.id}`} 
-                      className="block hover:text-primary-600"
-                    >
-                      <div className="flex justify-center mb-4">
-                        <img 
-                          src={product.image || 'https://via.placeholder.com/150'}
-                          alt={product.name}
-                          className="h-32 w-32 object-contain"
-                        />
+
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider w-48">
+                    Product
+                  </th>
+                  {products.map((product) => (
+                    <th key={product.id} className="px-6 py-4 text-center min-w-80">
+                      <div className="relative">
+                        <button
+                          onClick={() => removeProduct(product.id)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                        >
+                          <FiX size={12} />
+                        </button>
+                        <div className="h-48 bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="h-full w-full object-contain p-4"
+                            onError={(e) => {
+                              e.target.src = 'https://via.placeholder.com/300x300/f8f9fa/6c757d?text=Auto+Part';
+                            }}
+                          />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          by {product.dealer?.business_name || 'Verified Dealer'}
+                        </p>
                       </div>
-                      <h2 className="font-medium text-lg mb-2">{product.name}</h2>
-                    </Link>
-                    {product.reviews && product.reviews.length > 0 && (
-                      <div className="flex items-center mb-2">
-                        <Rating 
-                          value={product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length} 
-                          size="small" 
-                        />
-                        <span className="text-sm text-neutral-500 ml-2">
-                          ({product.reviews.length})
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {/* Price Row */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Price
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        ${product.price?.toFixed(2) || 'N/A'}
+                      </div>
+                      {product.discount_price && (
+                        <div className="text-sm text-gray-400 line-through">
+                          ${product.discount_price.toFixed(2)}
+                        </div>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Stock Status Row */}
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Stock Status
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        product.inStock 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {product.inStock ? (
+                          <>
+                            <FiCheck className="mr-1" size={12} />
+                            In Stock
+                          </>
+                        ) : (
+                          'Out of Stock'
+                        )}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Rating Row */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Rating
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        {[...Array(5)].map((_, i) => (
+                          <FiStar
+                            key={i}
+                            size={16}
+                            className={i < Math.floor(product.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {product.rating?.toFixed(1) || '4.5'} ({product.reviewCount || 0} reviews)
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Dealer Row */}
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Dealer
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="text-sm font-medium text-gray-900">
+                        {product.dealer?.business_name || 'Verified Dealer'}
+                      </div>
+                      <div className="flex items-center justify-center mt-1">
+                        <FiStar size={12} className="text-yellow-400 fill-current mr-1" />
+                        <span className="text-xs text-gray-600">
+                          {product.dealer?.rating?.toFixed(1) || '4.5'}
                         </span>
                       </div>
-                    )}
-                    <div className="mb-4 text-lg font-bold text-primary-700">
-                      ${product.price.toFixed(2)}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={() => handleAddToCart(product.id)}
-                        variant="primary"
-                        size="small"
-                        className="flex-1"
-                      >
-                        <FiShoppingCart className="mr-1" size={14} />
-                        Add
-                      </Button>
-                      <Button
-                        onClick={() => handleAddToWishlist(product.id)}
-                        variant="outline"
-                        size="small"
-                        className={`${isInWishlist(product.id) ? 'text-accent-500' : ''}`}
-                      >
-                        <FiHeart className={`${isInWishlist(product.id) ? 'fill-accent-500' : ''}`} />
-                      </Button>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Description row */}
-              <tr>
-                <td className="p-4 bg-neutral-50 border font-medium">Description</td>
-                {products.map(product => (
-                  <td key={product.id} className="p-4 border text-sm">
-                    {product.short_description || product.description?.substring(0, 150) + '...'}
-                  </td>
-                ))}
-              </tr>
-              
-              {/* Brand row */}
-              <tr>
-                <td className="p-4 bg-neutral-50 border font-medium">Brand</td>
-                {products.map(product => (
-                  <td key={product.id} className="p-4 border">
-                    {product.brand?.name || '-'}
-                  </td>
-                ))}
-              </tr>
-              
-              {/* Features row */}
-              <tr>
-                <td className="p-4 bg-neutral-50 border font-medium">Features</td>
-                {products.map(product => (
-                  <td key={product.id} className="p-4 border">
-                    {product.features && product.features.length > 0 ? (
-                      <ul className="list-disc pl-5 text-sm space-y-1">
-                        {product.features.map((feature, idx) => (
-                          <li key={idx}>{feature}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                ))}
-              </tr>
-              
-              {/* Availability row */}
-              <tr>
-                <td className="p-4 bg-neutral-50 border font-medium">Availability</td>
-                {products.map(product => (
-                  <td key={product.id} className="p-4 border">
-                    {product.inStock !== false ? (
-                      <span className="text-emerald-600 font-medium">In Stock</span>
-                    ) : (
-                      <span className="text-red-600 font-medium">Out of Stock</span>
-                    )}
-                  </td>
-                ))}
-              </tr>
-              
-              {/* Specifications rows */}
-              {specificationKeys.length > 0 && (
-                <>
-                  <tr>
-                    <td colSpan={products.length + 1} className="p-4 bg-neutral-100 border font-bold">
-                      Specifications
                     </td>
-                  </tr>
-                  {specificationKeys.map(specKey => (
-                    <tr key={specKey}>
-                      <td className="p-4 bg-neutral-50 border font-medium">{specKey}</td>
-                      {products.map(product => (
-                        <td key={product.id} className="p-4 border">
-                          {getSpecValue(product, specKey)}
-                        </td>
-                      ))}
-                    </tr>
                   ))}
-                </>
-              )}
-            </tbody>
-          </table>
+                </tr>
+
+                {/* Shipping Row */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Shipping
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center mb-1">
+                        <FiTruck className="mr-2 text-blue-500" size={16} />
+                        <span className="text-sm text-gray-900">
+                          {product.shipping_cost ? `$${product.shipping_cost.toFixed(2)}` : 'Free'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {product.estimated_delivery || '2-3 business days'}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Warranty Row */}
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Warranty
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center">
+                        <FiShield className="mr-2 text-green-500" size={16} />
+                        <span className="text-sm text-gray-900">
+                          {product.warranty || '1 Year'}
+                        </span>
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Action Row */}
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    Action
+                  </td>
+                  {products.map((product) => (
+                    <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        disabled={!product.inStock}
+                        className={`inline-flex items-center px-4 py-2 rounded-lg font-semibold transition-colors ${
+                          product.inStock
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <FiShoppingCart className="mr-2" size={16} />
+                        {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Comparison Tips */}
+        <div className="mt-8 bg-blue-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-4">Comparison Tips</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex items-start">
+              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5">
+                1
+              </div>
+              <div>
+                <h4 className="font-medium text-blue-900">Check Total Cost</h4>
+                <p className="text-sm text-blue-700">Consider shipping costs when comparing prices</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5">
+                2
+              </div>
+              <div>
+                <h4 className="font-medium text-blue-900">Dealer Reputation</h4>
+                <p className="text-sm text-blue-700">Higher-rated dealers often provide better service</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5">
+                3
+              </div>
+              <div>
+                <h4 className="font-medium text-blue-900">Warranty Coverage</h4>
+                <p className="text-sm text-blue-700">Longer warranties provide better protection</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

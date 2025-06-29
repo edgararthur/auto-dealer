@@ -80,10 +80,15 @@ CREATE INDEX IF NOT EXISTS idx_saved_carts_created_at ON public.saved_carts USIN
 -- Critical product performance indexes
 CREATE INDEX IF NOT EXISTS idx_products_dealer_status ON public.products USING btree (dealer_id, status, is_active) WHERE status = 'approved' AND is_active = true;
 CREATE INDEX IF NOT EXISTS idx_products_category_status ON public.products USING btree (category_id, status, is_active) WHERE status = 'approved' AND is_active = true;
+CREATE INDEX IF NOT EXISTS idx_products_subcategory_status ON public.products USING btree (subcategory_id, status, is_active) WHERE status = 'approved' AND is_active = true;
 CREATE INDEX IF NOT EXISTS idx_products_brand_status ON public.products USING btree (brand_id, status, is_active) WHERE status = 'approved' AND is_active = true;
 CREATE INDEX IF NOT EXISTS idx_products_created_desc ON public.products USING btree (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_products_updated_desc ON public.products USING btree (updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_products_price ON public.products USING btree (price);
 CREATE INDEX IF NOT EXISTS idx_products_stock_quantity ON public.products USING btree (stock_quantity) WHERE stock_quantity > 0;
+-- Full-text search index for product names and descriptions
+CREATE INDEX IF NOT EXISTS idx_products_name_search ON public.products USING gin (to_tsvector('english', name));
+CREATE INDEX IF NOT EXISTS idx_products_part_number ON public.products USING btree (part_number) WHERE part_number IS NOT NULL;
 
 -- Product images indexes
 CREATE INDEX IF NOT EXISTS idx_product_images_product_primary ON public.product_images USING btree (product_id, is_primary);

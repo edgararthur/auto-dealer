@@ -20,43 +20,83 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      // PERFORMANCE OPTIMIZATION: Code splitting configuration
+      // ENHANCED PERFORMANCE OPTIMIZATION: Advanced code splitting
       rollupOptions: {
         output: {
-          manualChunks: {
+          manualChunks: (id) => {
             // Vendor chunk for React and core libraries
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor';
+            }
+
             // Supabase and auth chunk
-            supabase: ['@supabase/supabase-js'],
-            
+            if (id.includes('@supabase') || id.includes('supabase')) {
+              return 'supabase';
+            }
+
             // Icons chunk (usually large)
-            icons: ['react-icons']
+            if (id.includes('react-icons')) {
+              return 'icons';
+            }
+
+            // UI libraries chunk
+            if (id.includes('framer-motion') || id.includes('react-hook-form') || id.includes('react-toastify')) {
+              return 'ui-libs';
+            }
+
+            // Utilities chunk
+            if (id.includes('lodash') || id.includes('date-fns') || id.includes('uuid') || id.includes('yup')) {
+              return 'utils';
+            }
+
+            // Node modules chunk for other dependencies
+            if (id.includes('node_modules')) {
+              return 'vendor-misc';
+            }
           }
         }
       },
-      
+
       // Optimize chunk size warnings
-      chunkSizeWarningLimit: 500,
-      
-      // Enable source maps for production debugging (optional)
+      chunkSizeWarningLimit: 300, // Reduced from 500 for stricter optimization
+
+      // Disable source maps for production for smaller bundles
       sourcemap: false,
-      
-      // Minify for production
+
+      // Enhanced minification
       minify: 'terser',
       terserOptions: {
         compress: {
           drop_console: true, // Remove console.logs in production
-          drop_debugger: true
+          drop_debugger: true,
+          pure_funcs: ['console.log', 'console.info', 'console.debug'], // Remove specific console methods
+          passes: 2 // Multiple passes for better compression
+        },
+        mangle: {
+          safari10: true // Better Safari compatibility
         }
-      }
+      },
+
+      // CSS optimization
+      cssCodeSplit: true,
+      cssMinify: true
     },
     
     // Development server optimization
     server: {
       port: 3001,
+      host: true,
       open: true,
-      cors: true
+      cors: true,
+      // Fix WebSocket connection issues
+      hmr: {
+        port: 3001,
+        host: 'localhost'
+      },
+      // Add caching headers for development
+      headers: {
+        'Cache-Control': 'public, max-age=31536000', // 1 year for static assets
+      }
     },
     
     // Performance optimizations

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ProductCard from './ProductCard';
+import { ProductGridSkeleton } from './LoadingStates';
 import { FiAlertCircle } from 'react-icons/fi';
 
 /**
@@ -20,8 +21,8 @@ import { FiAlertCircle } from 'react-icons/fi';
  * @param {Function} getProductTags - Function that receives a product and returns an array of tags
  * @param {Function} onPriceCompare - Function to handle price comparison
  */
-const ProductGrid = ({ 
-  products = [], 
+const ProductGrid = ({
+  products = [],
   loading = false,
   onAddToCart,
   onAddToWishlist,
@@ -33,7 +34,8 @@ const ProductGrid = ({
   columns = 4,
   compact = false,
   getProductTags = () => [],
-  onPriceCompare
+  onPriceCompare,
+  onProductClick
 }) => {
   // Generate column class based on columns prop
   const getColumnClass = () => {
@@ -70,22 +72,10 @@ const ProductGrid = ({
   // Render loading skeleton
   if (loading) {
     return (
-      <div className={`grid ${columnClass} gap-${compact ? '2' : '4'}`}>
-        {[...Array(compact ? 12 : 8)].map((_, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-full animate-pulse">
-            <div className={`h-${compact ? '28' : '48'} bg-gray-200`}></div>
-            <div className="p-4 flex-grow">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              {!compact && <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>}
-              {!compact && <div className="h-3 bg-gray-200 rounded w-1/4 mb-4"></div>}
-              <div className="flex justify-between items-center">
-                <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-                <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ProductGridSkeleton
+        count={compact ? 12 : 8}
+        compact={compact}
+      />
     );
   }
 
@@ -103,7 +93,7 @@ const ProductGrid = ({
   return (
     <div className={`grid ${columnClass} gap-${compact ? '2' : '4'}`}>
       {products.map(product => (
-        <ProductCard 
+        <ProductCard
           key={product.id}
           product={product}
           onAddToCart={onAddToCart}
@@ -111,6 +101,7 @@ const ProductGrid = ({
           onQuickView={onQuickView}
           onAddToComparison={onAddToComparison}
           onPriceCompare={onPriceCompare}
+          onProductClick={onProductClick}
           isInComparison={isInComparison ? isInComparison(product.id) : false}
           showQuickActions={showQuickActions}
           compact={compact}

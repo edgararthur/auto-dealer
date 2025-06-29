@@ -22,11 +22,11 @@ const BestSellers = () => {
       try {
         setLoading(true);
         
-        // Fetch products - get more products to have a good selection
+        // Fetch products with optimized limit for better performance
         const productsResponse = await ProductService.getProducts({
           sortBy: 'created_at',
           sortOrder: 'desc',
-          limit: 100,
+          limit: 50, // Reduced from 100 for better performance
           inStock: true
         });
         

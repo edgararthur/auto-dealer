@@ -250,7 +250,7 @@ const AdvancedSearch = ({
         }`}>
           <div className="flex-1 flex items-center">
             <FiSearch 
-              size={20} 
+              size={17} 
               className="text-neutral-400 ml-4 mr-3" 
             />
             <input
@@ -260,7 +260,7 @@ const AdvancedSearch = ({
               onChange={handleInputChange}
               onFocus={() => setIsExpanded(true)}
               placeholder="Search for auto parts, brands, or part numbers..."
-              className="flex-1 py-3 px-0 text-neutral-900 placeholder-neutral-500 bg-transparent border-none outline-none text-lg"
+              className="flex-1 py-3 px-0 text-sm font-medium text-neutral-900 placeholder-neutral-500 bg-transparent border-none outline-none text-lg"
               autoComplete="off"
             />
             

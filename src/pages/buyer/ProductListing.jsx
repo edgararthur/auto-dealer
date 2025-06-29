@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  FiFilter, 
-  FiX, 
-  FiGrid, 
+import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import {
+  FiFilter,
+  FiX,
+  FiGrid,
   FiList,
-  FiChevronDown, 
+  FiChevronDown,
   FiChevronUp,
   FiShoppingCart,
   FiStar,
@@ -16,14 +16,16 @@ import {
   FiAward,
   FiTruck
 } from 'react-icons/fi';
-import { 
-  ProductGrid, 
-  Breadcrumb, 
-  Pagination, 
+import {
+  ProductGrid,
+  Breadcrumb,
+  Pagination,
   EmptyState,
   Button
 } from '../../components/common';
 import PriceComparison from '../../components/common/PriceComparison';
+import VehicleSearch from '../../components/search/VehicleSearch';
+import ProductModal from '../../components/product/ProductModal';
 import { useComparison } from '../../contexts/ComparisonContext';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
@@ -31,6 +33,7 @@ import ProductService from '../../../shared/services/productService';
 
 const ProductListing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { productId: urlProductId } = useParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,14 +54,25 @@ const ProductListing = () => {
     sortBy: 'relevance'
   });
 
+  // Vehicle search state
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehicleSearchActive, setVehicleSearchActive] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
 
   // Price comparison state
   const [showPriceComparison, setShowPriceComparison] = useState(false);
   const [selectedProductForComparison, setSelectedProductForComparison] = useState(null);
+
+  // Product modal state
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [dealerPrices, setDealerPrices] = useState([]);
 
   const navigate = useNavigate();
@@ -78,16 +92,22 @@ const ProductListing = () => {
       try {
         setLoading(true);
         
-        // Fetch products
+        // Fetch ALL products from database (no limit to ensure all products are displayed)
         const productsResponse = await ProductService.getProducts({
           sortBy: 'created_at',
           sortOrder: 'desc',
-          limit: 100
+          // Removed limit to fetch ALL products
+          page: 1,
+          includeCount: true // Get total count for pagination
         });
         
         if (productsResponse.success) {
-          setProducts(productsResponse.products || []);
-          setDisplayedProducts(productsResponse.products || []);
+          const fetchedProducts = productsResponse.products || [];
+          setProducts(fetchedProducts);
+          setDisplayedProducts(fetchedProducts);
+          setTotalProducts(productsResponse.count || fetchedProducts.length);
+          setTotalPages(Math.ceil((productsResponse.count || fetchedProducts.length) / itemsPerPage));
+          setHasMoreProducts(false); // We've fetched all products
         } else {
           setError(productsResponse.error || 'Failed to fetch products');
         }
@@ -111,6 +131,14 @@ const ProductListing = () => {
     
     fetchData();
   }, []);
+
+  // Handle URL-based modal opening
+  useEffect(() => {
+    if (urlProductId) {
+      setSelectedProductId(urlProductId);
+      setIsProductModalOpen(true);
+    }
+  }, [urlProductId]);
 
   // Get unique dealers/brands for filter
   const dealers = [...new Set(products.map(p => p.dealer?.company_name || p.dealer?.name).filter(Boolean))];
@@ -285,13 +313,53 @@ const ProductListing = () => {
     window.scrollTo(0, 0);
   };
 
+  // Load more products - Not needed anymore since we fetch all products initially
+  const loadMoreProducts = async () => {
+    // Since we now fetch ALL products initially, this function is no longer needed
+    // All products are already loaded, pagination is handled client-side
+    console.log('All products already loaded');
+    return;
+  };
+
   // Product actions
   const handleAddToCart = (productId) => {
     const product = products.find(p => p.id === productId);
-    addToCart(productId, 1, { 
+    addToCart(productId, 1, {
       dealerId: product?.dealer?.id,
-      price: product?.price 
+      price: product?.price
     });
+  };
+
+  // Handle vehicle search
+  const handleVehicleSearch = (vehicleData) => {
+    if (vehicleData) {
+      setSelectedVehicle(vehicleData);
+      setVehicleSearchActive(true);
+
+      // Update URL params to include vehicle search
+      const newParams = new URLSearchParams(searchParams);
+      if (vehicleData.type === 'vehicle') {
+        if (vehicleData.make) newParams.set('make', vehicleData.make);
+        if (vehicleData.model) newParams.set('model', vehicleData.model);
+        if (vehicleData.year) newParams.set('year', vehicleData.year);
+        if (vehicleData.vehicleType) newParams.set('vehicleType', vehicleData.vehicleType);
+      } else if (vehicleData.type === 'vin') {
+        newParams.set('vin', vehicleData.vin);
+      }
+      setSearchParams(newParams);
+    } else {
+      setSelectedVehicle(null);
+      setVehicleSearchActive(false);
+
+      // Remove vehicle params from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('make');
+      newParams.delete('model');
+      newParams.delete('year');
+      newParams.delete('vehicleType');
+      newParams.delete('vin');
+      setSearchParams(newParams);
+    }
   };
 
   const handleAddToWishlist = (productId) => {
@@ -331,6 +399,18 @@ const ProductListing = () => {
     ];
     setDealerPrices(mockDealerPrices);
     setShowPriceComparison(true);
+  };
+
+  // Handle product click to open modal
+  const handleProductClick = (productId) => {
+    setSelectedProductId(productId);
+    setIsProductModalOpen(true);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setIsProductModalOpen(false);
+    setSelectedProductId(null);
   };
 
   // Get active filter count
@@ -434,6 +514,7 @@ const ProductListing = () => {
             </h1>
             <p className="text-neutral-500 mt-1">
               {`${displayedProducts.length} products found`}
+              {totalProducts !== displayedProducts.length && ` (${totalProducts} total in database)`}
               {getActiveFilterCount() > 0 && ` with ${getActiveFilterCount()} filters applied`}
             </p>
           </div>
@@ -457,8 +538,20 @@ const ProductListing = () => {
               </button>
             </div>
             
+            {/* Items per page selector */}
+            <select
+              className="border border-neutral-200 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+            >
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
+
             {/* Sort dropdown */}
-            <select 
+            <select
               className="border border-neutral-200 rounded-lg px-3 py-2 bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               value={filters.sortBy}
               onChange={(e) => updateFilter('sortBy', e.target.value)}
@@ -492,6 +585,43 @@ const ProductListing = () => {
             </button>
           </div>
         </div>
+
+        {/* Vehicle Search */}
+        <div className="mb-6">
+          <VehicleSearch
+            onSearch={handleVehicleSearch}
+            className="w-full"
+          />
+        </div>
+
+        {/* Active Vehicle Filter Display */}
+        {vehicleSearchActive && selectedVehicle && (
+          <div className="mb-6 bg-primary-50 border border-primary-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="text-sm font-medium text-primary-900">
+                  Showing parts for:
+                  <span className="ml-2 font-semibold">
+                    {selectedVehicle.type === 'vin'
+                      ? `VIN: ${selectedVehicle.vin}`
+                      : `${selectedVehicle.year || ''} ${selectedVehicle.make || ''} ${selectedVehicle.model || ''} ${selectedVehicle.vehicleType || ''}`.trim()
+                    }
+                  </span>
+                </div>
+                <div className="text-xs text-primary-700 bg-primary-100 px-2 py-1 rounded-full">
+                  {displayedProducts.length} compatible parts found
+                </div>
+              </div>
+              <button
+                onClick={() => handleVehicleSearch(null)}
+                className="text-primary-600 hover:text-primary-800 transition-colors"
+                title="Clear vehicle filter"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filter Panel */}
         {isFilterOpen && (
@@ -825,7 +955,7 @@ const ProductListing = () => {
           />
         ) : (
           <>
-            <ProductGrid 
+            <ProductGrid
               products={getCurrentPageProducts()}
               loading={loading}
               viewMode={viewMode}
@@ -833,20 +963,52 @@ const ProductListing = () => {
               onAddToWishlist={handleAddToWishlist}
               onAddToComparison={handleAddToComparison}
               onPriceCompare={handlePriceComparison}
+              onProductClick={handleProductClick}
               isInComparison={isInComparison}
               isInWishlist={isInWishlist}
             />
             
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-12 flex justify-center">
-                <Pagination 
-                  currentPage={currentPage} 
-                  totalPages={totalPages} 
-                  onPageChange={handlePageChange}
-                />
+            {/* Pagination and Load More */}
+            <div className="mt-12 space-y-6">
+              {/* Load More Button */}
+              {hasMoreProducts && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={loadMoreProducts}
+                    disabled={loadingMore}
+                    className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 disabled:bg-neutral-400 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Loading More...</span>
+                      </>
+                    ) : (
+                      <span>Load More Products</span>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Traditional Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+
+              {/* Products Count Info */}
+              <div className="text-center text-sm text-neutral-600">
+                Showing {getCurrentPageProducts().length} of {totalProducts} products
+                {!hasMoreProducts && totalProducts > getCurrentPageProducts().length && (
+                  <span className="ml-2 text-primary-600">• All products loaded</span>
+                )}
               </div>
-            )}
+            </div>
           </>
         )}
       </div>
@@ -881,6 +1043,14 @@ const ProductListing = () => {
           }}
         />
       )}
+
+      {/* Product Modal */}
+      <ProductModal
+        productId={selectedProductId}
+        isOpen={isProductModalOpen}
+        onClose={handleModalClose}
+        selectedVehicle={selectedVehicle}
+      />
     </div>
   );
 };

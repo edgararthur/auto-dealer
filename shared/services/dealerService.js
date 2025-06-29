@@ -1,387 +1,563 @@
 import supabase from '../supabase/supabaseClient.js';
 import { logError } from '../utils/errorLogger';
+import CacheUtils, { CACHE_CONFIG } from '../../src/utils/cacheUtils.js';
 
 /**
- * Service for managing dealer operations, reviews, and reputation tiers
+ * DealerService - Multi-tenant dealer management for buyers
+ * Handles dealer discovery, profiles, reviews, and location-based search
  */
-class DealerService {
+const DealerService = {
   /**
-   * Get a dealer by ID with full details
-   * @param {string} dealerId - The dealer ID
-   * @returns {Promise<Object>} - Result with success flag and dealer details or error
+   * Get all active dealers with optional filters
+   * @param {Object} filters - Filter options
+   * @returns {Promise} - List of dealers
    */
-  static async getDealerById(dealerId) {
+  getDealers: async (filters = {}) => {
     try {
-      if (!dealerId) {
-        return { success: false, error: 'Dealer ID is required' };
+      // Check cache first
+      const cachedData = CacheUtils.getCachedAPIResponse('dealers', filters);
+      if (cachedData) {
+        console.log('DealerService: Serving dealers from cache');
+        return cachedData;
+      }
+
+      let query = supabase
+        .from('dealers')
+        .select(`
+          id,
+          business_name,
+          company_name,
+          description,
+          phone,
+          email,
+          address,
+          city,
+          state,
+          country,
+          postal_code,
+          latitude,
+          longitude,
+          business_hours,
+          website_url,
+          logo_url,
+          banner_url,
+          verification,
+          verification_status,
+          rating,
+          total_reviews,
+          total_sales,
+          created_at,
+          is_active,
+          specialties,
+          business_type,
+          profiles:user_id(full_name, avatar_url)
+        `)
+        .eq('is_active', true)
+        .eq('verification', 'approved');
+
+      // Apply filters
+      if (filters.city) {
+        query = query.ilike('city', `%${filters.city}%`);
+      }
+
+      if (filters.state) {
+        query = query.ilike('state', `%${filters.state}%`);
+      }
+
+      if (filters.country) {
+        query = query.eq('country', filters.country);
+      }
+
+      if (filters.specialty) {
+        query = query.contains('specialties', [filters.specialty]);
+      }
+
+      if (filters.businessType) {
+        query = query.eq('business_type', filters.businessType);
+      }
+
+      if (filters.minRating) {
+        query = query.gte('rating', filters.minRating);
+      }
+
+      // Location-based search (if coordinates provided)
+      if (filters.latitude && filters.longitude && filters.radius) {
+        // Use PostGIS extension for distance calculation
+        query = query.rpc('dealers_within_radius', {
+          lat: filters.latitude,
+          lng: filters.longitude,
+          radius_km: filters.radius
+        });
+      }
+
+      // Sorting
+      if (filters.sortBy) {
+        switch (filters.sortBy) {
+          case 'rating':
+            query = query.order('rating', { ascending: false });
+            break;
+          case 'reviews':
+            query = query.order('total_reviews', { ascending: false });
+            break;
+          case 'sales':
+            query = query.order('total_sales', { ascending: false });
+            break;
+          case 'distance':
+            // Distance sorting handled by RPC function
+            break;
+          case 'name':
+            query = query.order('business_name', { ascending: true });
+            break;
+          default:
+            query = query.order('created_at', { ascending: false });
+        }
+      } else {
+        query = query.order('rating', { ascending: false });
+      }
+
+      // Pagination
+      if (filters.page && filters.limit) {
+        const start = (filters.page - 1) * filters.limit;
+        const end = start + filters.limit - 1;
+        query = query.range(start, end);
+      } else if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const { data: dealers, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching dealers:', error);
+        throw error;
+      }
+
+      // Transform data
+      const transformedDealers = dealers.map(dealer => ({
+        ...dealer,
+        displayName: dealer.business_name || dealer.company_name || 'Unknown Business',
+        fullAddress: [dealer.address, dealer.city, dealer.state, dealer.postal_code]
+          .filter(Boolean)
+          .join(', '),
+        isVerified: dealer.verification === 'approved',
+        hasLocation: Boolean(dealer.latitude && dealer.longitude),
+        ownerName: dealer.profiles?.full_name || 'Unknown Owner',
+        ownerAvatar: dealer.profiles?.avatar_url || null,
+        businessHours: dealer.business_hours || {},
+        specialties: dealer.specialties || [],
+        contactInfo: {
+          phone: dealer.phone,
+          email: dealer.email,
+          website: dealer.website_url
+        }
+      }));
+
+      const result = {
+        success: true,
+        dealers: transformedDealers,
+        count: count || transformedDealers.length,
+        hasMore: filters.limit ? transformedDealers.length === filters.limit : false
+      };
+
+      // Cache the result
+      CacheUtils.cacheAPIResponse('dealers', filters, result, CACHE_CONFIG.DEALERS);
+
+      return result;
+
+    } catch (error) {
+      console.error('Error in getDealers:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Get a single dealer by ID with detailed information
+   * @param {string} dealerId - Dealer ID
+   * @returns {Promise} - Dealer details
+   */
+  getDealerById: async (dealerId) => {
+    try {
+      const cacheKey = `dealer_${dealerId}`;
+      const cachedDealer = CacheUtils.get(cacheKey);
+      if (cachedDealer) {
+        console.log('DealerService: Serving dealer detail from cache');
+        return cachedDealer;
       }
       
       const { data: dealer, error } = await supabase
         .from('dealers')
         .select(`
           *,
-          user:user_id(id, name, email, profile_image),
-          reviews(
+          profiles:user_id(full_name, avatar_url, email),
+          dealer_reviews(
             id,
             rating,
-            comment,
+            review_text,
             created_at,
-            reviewer:user_id(id, name, profile_image)
+            profiles:customer_id(full_name, avatar_url)
           )
         `)
         .eq('id', dealerId)
+        .eq('is_active', true)
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching dealer:', error);
+        throw error;
+      }
       
       if (!dealer) {
         return { success: false, error: 'Dealer not found' };
       }
 
-      // Calculate average rating
-      const avgRating = dealer.reviews.length > 0 
-        ? dealer.reviews.reduce((sum, review) => sum + review.rating, 0) / dealer.reviews.length 
+      // Calculate average rating from reviews
+      const reviews = dealer.dealer_reviews || [];
+      const avgRating = reviews.length > 0 
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
         : 0;
-      
-      // Determine reputation tier based on average rating and number of reviews
-      const reputationTier = this.calculateReputationTier(avgRating, dealer.reviews.length);
-      
-      return {
-        success: true,
-        dealer: {
+
+      const transformedDealer = {
           ...dealer,
-          average_rating: parseFloat(avgRating.toFixed(1)),
-          review_count: dealer.reviews.length,
-          reputation_tier: reputationTier
-        }
+        displayName: dealer.business_name || dealer.company_name || 'Unknown Business',
+        fullAddress: [dealer.address, dealer.city, dealer.state, dealer.postal_code]
+          .filter(Boolean)
+          .join(', '),
+        isVerified: dealer.verification === 'approved',
+        hasLocation: Boolean(dealer.latitude && dealer.longitude),
+        ownerName: dealer.profiles?.full_name || 'Unknown Owner',
+        ownerAvatar: dealer.profiles?.avatar_url || null,
+        ownerEmail: dealer.profiles?.email || dealer.email,
+        businessHours: dealer.business_hours || {},
+        specialties: dealer.specialties || [],
+        contactInfo: {
+          phone: dealer.phone,
+          email: dealer.email,
+          website: dealer.website_url
+        },
+        reviews: reviews.map(review => ({
+          ...review,
+          customerName: review.profiles?.full_name || 'Anonymous',
+          customerAvatar: review.profiles?.avatar_url || null
+        })),
+        calculatedRating: avgRating,
+        totalReviews: reviews.length
       };
+
+      const result = { success: true, dealer: transformedDealer };
+      
+      // Cache the result
+      CacheUtils.set(cacheKey, result, CACHE_CONFIG.DEALER_DETAILS);
+
+      return result;
+
     } catch (error) {
-      logError('DealerService.getDealerById', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to get dealer details'
-      };
+      console.error('Error in getDealerById:', error);
+      return { success: false, error: error.message };
     }
-  }
-  
+  },
+
   /**
-   * Get dealers with filter options
-   * @param {Object} options - Query options
-   * @param {number} options.limit - Maximum number of dealers to return
-   * @param {number} options.offset - Offset for pagination
-   * @param {string} options.search - Search term for dealer name
-   * @param {string} options.minimum_tier - Minimum reputation tier (silver, gold, diamond)
-   * @param {number} options.minimum_rating - Minimum average rating
-   * @param {string} options.location - Filter by location
-   * @returns {Promise<Object>} - Result with success flag and dealers or error
+   * Get products from a specific dealer
+   * @param {string} dealerId - Dealer ID
+   * @param {Object} filters - Filter options
+   * @returns {Promise} - Dealer's products
    */
-  static async getDealers(options = {}) {
+  getDealerProducts: async (dealerId, filters = {}) => {
     try {
+      const cacheKey = `dealer_products_${dealerId}`;
+      const cachedData = CacheUtils.getCachedAPIResponse(cacheKey, filters);
+      if (cachedData) {
+        console.log('DealerService: Serving dealer products from cache');
+        return cachedData;
+      }
+
       let query = supabase
-        .from('dealers')
+        .from('products')
         .select(`
-          *,
-          user:user_id(id, name, email, profile_image),
-          reviews!dealer_id(id, rating)
-        `);
+          id,
+          name,
+          description,
+          short_description,
+          sku,
+          price,
+          discount_price,
+          stock_quantity,
+          condition,
+          status,
+          created_at,
+          category_id,
+          brand_id,
+          product_images!left(id, url, is_primary),
+          category:categories!category_id(id, name, description),
+          brand:brands!brand_id(id, name, description)
+        `)
+        .eq('dealer_id', dealerId)
+        .eq('status', 'approved')
+        .eq('is_active', true);
       
       // Apply filters
-      if (options.search) {
-        query = query.or(`name.ilike.%${options.search}%, company_name.ilike.%${options.search}%`);
+      if (filters.category) {
+        query = query.eq('category_id', filters.category);
       }
-      
-      if (options.location) {
-        query = query.ilike('location', `%${options.location}%`);
+
+      if (filters.brand) {
+        query = query.eq('brand_id', filters.brand);
       }
-      
-      // Apply pagination
-      if (options.limit) {
-        query = query.limit(options.limit);
+
+      if (filters.search) {
+        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
-      
-      if (options.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+
+      if (filters.minPrice && filters.maxPrice) {
+        query = query.gte('price', filters.minPrice).lte('price', filters.maxPrice);
       }
-      
-      // Execute query
-      const { data: dealers, error, count } = await query;
-      
-      if (error) throw error;
-      
-      // Post-process dealers to add average rating and tier
-      const processedDealers = dealers.map(dealer => {
-        const reviews = dealer.reviews || [];
-        const avgRating = reviews.length > 0 
-          ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
-          : 0;
-        
-        const reputationTier = this.calculateReputationTier(avgRating, reviews.length);
+
+      if (filters.inStock) {
+        query = query.gt('stock_quantity', 0);
+      }
+
+      if (filters.condition) {
+        query = query.eq('condition', filters.condition);
+      }
+
+      // Sorting
+      if (filters.sortBy) {
+        switch (filters.sortBy) {
+          case 'price_asc':
+            query = query.order('price', { ascending: true });
+            break;
+          case 'price_desc':
+            query = query.order('price', { ascending: false });
+            break;
+          case 'name':
+            query = query.order('name', { ascending: true });
+            break;
+          case 'newest':
+            query = query.order('created_at', { ascending: false });
+            break;
+          default:
+            query = query.order('created_at', { ascending: false });
+        }
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      // Pagination
+      if (filters.page && filters.limit) {
+        const start = (filters.page - 1) * filters.limit;
+        const end = start + filters.limit - 1;
+        query = query.range(start, end);
+      } else if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const { data: products, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching dealer products:', error);
+        throw error;
+      }
+
+      // Transform products
+      const transformedProducts = products.map(product => {
+        const primaryImg = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
         
         return {
-          ...dealer,
-          reviews: undefined, // Remove raw reviews data
-          average_rating: parseFloat(avgRating.toFixed(1)),
-          review_count: reviews.length,
-          reputation_tier: reputationTier
+          ...product,
+          image: primaryImg?.url || null,
+          product_images: product.product_images || [],
+          inStock: product.stock_quantity > 0,
+          isNew: new Date(product.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          oldPrice: product.discount_price ? product.price : null,
+          price: product.discount_price || product.price,
+          category: product.category || { id: product.category_id, name: 'Unknown Category' },
+          brand: product.brand || { id: product.brand_id, name: 'Unknown Brand' },
+          dealerId: dealerId
         };
       });
       
-      // Apply post-query filters that require computed fields
-      let filteredDealers = processedDealers;
-      
-      if (options.minimum_rating) {
-        filteredDealers = filteredDealers.filter(
-          dealer => dealer.average_rating >= options.minimum_rating
-        );
-      }
-      
-      if (options.minimum_tier) {
-        const tierValues = { 'bronze': 1, 'silver': 2, 'gold': 3, 'diamond': 4 };
-        const minTierValue = tierValues[options.minimum_tier.toLowerCase()] || 0;
-        
-        filteredDealers = filteredDealers.filter(dealer => {
-          const dealerTierValue = tierValues[dealer.reputation_tier.toLowerCase()] || 0;
-          return dealerTierValue >= minTierValue;
-        });
-      }
-      
-      return {
+      const result = {
         success: true,
-        dealers: filteredDealers,
-        count: filteredDealers.length,
-        total: count
+        products: transformedProducts,
+        count: count || transformedProducts.length,
+        hasMore: filters.limit ? transformedProducts.length === filters.limit : false
       };
+
+      // Cache the result
+      CacheUtils.cacheAPIResponse(cacheKey, filters, result, CACHE_CONFIG.PRODUCTS);
+
+      return result;
+
     } catch (error) {
-      logError('DealerService.getDealers', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to get dealers'
-      };
+      console.error('Error in getDealerProducts:', error);
+      return { success: false, error: error.message };
     }
-  }
-  
+  },
+
+  /**
+   * Search dealers by location
+   * @param {Object} location - Location parameters
+   * @returns {Promise} - Nearby dealers
+   */
+  searchDealersByLocation: async (location) => {
+    try {
+      const { latitude, longitude, radius = 50 } = location;
+
+      if (!latitude || !longitude) {
+        return { success: false, error: 'Location coordinates required' };
+      }
+
+      return await DealerService.getDealers({
+        latitude,
+        longitude,
+        radius,
+        sortBy: 'distance',
+        limit: 20
+      });
+
+    } catch (error) {
+      console.error('Error in searchDealersByLocation:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Get featured/top-rated dealers
+   * @param {number} limit - Number of dealers to return
+   * @returns {Promise} - Featured dealers
+   */
+  getFeaturedDealers: async (limit = 12) => {
+    try {
+      return await DealerService.getDealers({
+        minRating: 4.0,
+        sortBy: 'rating',
+        limit
+      });
+
+    } catch (error) {
+      console.error('Error in getFeaturedDealers:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   /**
    * Add a review for a dealer
-   * @param {string} dealerId - The dealer ID
-   * @param {string} userId - The reviewer user ID
-   * @param {Object} reviewData - The review data
-   * @param {number} reviewData.rating - Rating (1-5)
-   * @param {string} reviewData.comment - Review comment
-   * @returns {Promise<Object>} - Result with success flag and review or error
+   * @param {string} dealerId - Dealer ID
+   * @param {Object} reviewData - Review information
+   * @returns {Promise} - Review result
    */
-  static async addDealerReview(dealerId, userId, reviewData) {
+  addDealerReview: async (dealerId, reviewData) => {
     try {
-      if (!dealerId || !userId) {
-        return { success: false, error: 'Dealer ID and user ID are required' };
-      }
-      
-      if (!reviewData.rating || reviewData.rating < 1 || reviewData.rating > 5) {
-        return { success: false, error: 'Valid rating (1-5) is required' };
-      }
-      
-      // Check if the user has already reviewed this dealer
-      const { data: existingReview, error: checkError } = await supabase
+      const { rating, review_text, customer_id } = reviewData;
+
+      const { data, error } = await supabase
         .from('dealer_reviews')
-        .select('id')
-        .eq('dealer_id', dealerId)
-        .eq('user_id', userId)
-        .maybeSingle();
-        
-      if (checkError) throw checkError;
-      
-      let reviewResult;
-      
-      if (existingReview) {
-        // Update existing review
-        const { data, error } = await supabase
-          .from('dealer_reviews')
-          .update({
-            rating: reviewData.rating,
-            comment: reviewData.comment || null,
-            updated_at: new Date()
-          })
-          .eq('id', existingReview.id)
-          .select('*, user:user_id(name, profile_image)')
-          .single();
-          
-        if (error) throw error;
-        reviewResult = data;
-      } else {
-        // Create new review
-        const { data, error } = await supabase
-          .from('dealer_reviews')
-          .insert([
-            {
-              dealer_id: dealerId,
-              user_id: userId,
-              rating: reviewData.rating,
-              comment: reviewData.comment || null,
-              created_at: new Date(),
-              updated_at: new Date()
-            }
-          ])
-          .select('*, user:user_id(name, profile_image)')
-          .single();
-          
-        if (error) throw error;
-        reviewResult = data;
+        .insert({
+          dealer_id: dealerId,
+          customer_id,
+          rating,
+          review_text,
+          created_at: new Date()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding dealer review:', error);
+        throw error;
       }
-      
+
       // Update dealer's average rating
-      await this.updateDealerRatingSummary(dealerId);
-      
-      return {
-        success: true,
-        review: reviewResult,
-        message: existingReview ? 'Review updated successfully' : 'Review added successfully'
-      };
+      await DealerService.updateDealerRating(dealerId);
+
+      return { success: true, review: data };
+
     } catch (error) {
-      logError('DealerService.addDealerReview', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to add review'
-      };
+      console.error('Error in addDealerReview:', error);
+      return { success: false, error: error.message };
     }
-  }
-  
+  },
+
   /**
-   * Get all reviews for a dealer
-   * @param {string} dealerId - The dealer ID
-   * @param {Object} options - Query options
-   * @param {number} options.limit - Maximum number of reviews to return
-   * @param {number} options.offset - Offset for pagination
-   * @param {string} options.sort_by - Sort field (created_at, rating)
-   * @param {string} options.sort_order - Sort order (asc, desc)
-   * @returns {Promise<Object>} - Result with success flag and reviews or error
+   * Update dealer's average rating (internal function)
+   * @param {string} dealerId - Dealer ID
    */
-  static async getDealerReviews(dealerId, options = {}) {
+  updateDealerRating: async (dealerId) => {
     try {
-      if (!dealerId) {
-        return { success: false, error: 'Dealer ID is required' };
-      }
-      
-      let query = supabase
-        .from('dealer_reviews')
-        .select(`
-          *,
-          user:user_id(id, name, profile_image)
-        `)
-        .eq('dealer_id', dealerId);
-      
-      // Apply sorting
-      const sortField = options.sort_by || 'created_at';
-      const sortOrder = options.sort_order === 'asc' ? true : false;
-      query = query.order(sortField, { ascending: sortOrder });
-      
-      // Apply pagination
-      if (options.limit) {
-        query = query.limit(options.limit);
-      }
-      
-      if (options.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-      }
-      
-      const { data: reviews, error, count } = await query;
-      
-      if (error) throw error;
-      
-      // Get total count of reviews
-      const { count: totalCount, error: countError } = await supabase
-        .from('dealer_reviews')
-        .select('id', { count: 'exact' })
-        .eq('dealer_id', dealerId);
-        
-      if (countError) throw countError;
-      
-      return {
-        success: true,
-        reviews,
-        count: reviews.length,
-        total: totalCount
-      };
-    } catch (error) {
-      logError('DealerService.getDealerReviews', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to get dealer reviews'
-      };
-    }
-  }
-  
-  /**
-   * Calculate the reputation tier for a dealer
-   * @param {number} averageRating - Dealer's average rating
-   * @param {number} reviewCount - Number of reviews
-   * @returns {string} - Reputation tier (bronze, silver, gold, diamond)
-   */
-  static calculateReputationTier(averageRating, reviewCount) {
-    // Baseline is bronze
-    if (reviewCount < 5 || averageRating < 3) {
-      return 'bronze';
-    }
-    
-    // Silver: At least 5 reviews and 3.0+ rating
-    if ((reviewCount >= 5 && averageRating >= 3 && averageRating < 4) || 
-        (reviewCount < 15 && averageRating >= 4)) {
-      return 'silver';
-    }
-    
-    // Gold: 15+ reviews and 4.0+ rating, or 30+ reviews and 3.5+ rating
-    if ((reviewCount >= 15 && averageRating >= 4 && averageRating < 4.5) || 
-        (reviewCount >= 30 && averageRating >= 3.5 && averageRating < 4.5) ||
-        (reviewCount < 30 && averageRating >= 4.5)) {
-      return 'gold';
-    }
-    
-    // Diamond: 30+ reviews and 4.5+ rating
-    if (reviewCount >= 30 && averageRating >= 4.5) {
-      return 'diamond';
-    }
-    
-    // Fallback
-    return 'bronze';
-  }
-  
-  /**
-   * Update the dealer's rating summary in the database
-   * @param {string} dealerId - The dealer ID
-   * @returns {Promise<void>}
-   */
-  static async updateDealerRatingSummary(dealerId) {
-    try {
-      // Calculate the average rating from all reviews
+      // Calculate new average rating
       const { data: reviews, error } = await supabase
         .from('dealer_reviews')
         .select('rating')
         .eq('dealer_id', dealerId);
         
-      if (error) throw error;
-      
-      if (!reviews || reviews.length === 0) {
-        return;
-      }
-      
-      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = totalRating / reviews.length;
-      const reputationTier = this.calculateReputationTier(averageRating, reviews.length);
-      
-      // Update the dealer record with the new average rating and reputation tier
+      if (error || !reviews.length) return;
+
+      const avgRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+      const totalReviews = reviews.length;
+
+      // Update dealer record
       await supabase
         .from('dealers')
         .update({
-          average_rating: parseFloat(averageRating.toFixed(1)),
-          review_count: reviews.length,
-          reputation_tier: reputationTier,
+          rating: Math.round(avgRating * 10) / 10, // Round to 1 decimal place
+          total_reviews: totalReviews,
           updated_at: new Date()
         })
         .eq('id', dealerId);
         
+      // Clear cache
+      CacheUtils.delete(`dealer_${dealerId}`);
+
     } catch (error) {
-      logError('DealerService.updateDealerRatingSummary', error);
-      throw error;
+      console.error('Error updating dealer rating:', error);
+    }
+  },
+
+  /**
+   * Get dealer statistics
+   * @param {string} dealerId - Dealer ID
+   * @returns {Promise} - Dealer statistics
+   */
+  getDealerStats: async (dealerId) => {
+    try {
+      const [productsResult, ordersResult, reviewsResult] = await Promise.all([
+        supabase
+          .from('products')
+          .select('id', { count: 'exact' })
+          .eq('dealer_id', dealerId)
+          .eq('status', 'approved'),
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact' })
+          .eq('dealer_id', dealerId)
+          .eq('status', 'completed'),
+        supabase
+          .from('dealer_reviews')
+          .select('rating')
+          .eq('dealer_id', dealerId)
+      ]);
+
+      const totalProducts = productsResult.count || 0;
+      const totalOrders = ordersResult.count || 0;
+      const reviews = reviewsResult.data || [];
+      const avgRating = reviews.length > 0 
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+        : 0;
+
+      return {
+        success: true,
+        stats: {
+          totalProducts,
+          totalOrders,
+          totalReviews: reviews.length,
+          averageRating: Math.round(avgRating * 10) / 10
+        }
+      };
+
+    } catch (error) {
+      console.error('Error in getDealerStats:', error);
+      return { success: false, error: error.message };
     }
   }
-}
+};
 
 export default DealerService; 

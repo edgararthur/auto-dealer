@@ -1,359 +1,350 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiTruck, FiMapPin, FiStar, FiX, FiPlus, FiMinus, FiCheck } from 'react-icons/fi';
-import PropTypes from 'prop-types';
+import { 
+  FiMinus, 
+  FiPlus, 
+  FiTrash2, 
+  FiTruck, 
+  FiMapPin, 
+  FiStar,
+  FiCheckCircle,
+  FiShoppingCart,
+  FiArrowRight
+} from 'react-icons/fi';
+import { useCart } from '../../contexts/CartContext';
 
-/**
- * MultiDealerCart Component - Cart that groups items by dealer
- * Shows separate shipping calculations per dealer
- * 
- * @param {Array} cartItems - Array of cart items
- * @param {Function} onUpdateQuantity - Function to update item quantity
- * @param {Function} onRemoveItem - Function to remove item from cart
- * @param {Function} onCheckout - Function to proceed to checkout
- * @param {Boolean} isCheckout - Whether this is being used in checkout flow
- */
-const MultiDealerCart = ({ 
-  cartItems = [], 
-  onUpdateQuantity, 
-  onRemoveItem, 
-  onCheckout,
-  isCheckout = false 
-}) => {
-  const [groupedItems, setGroupedItems] = useState({});
-  const [totalsByDealer, setTotalsByDealer] = useState({});
-  const [grandTotal, setGrandTotal] = useState(0);
+const MultiDealerCart = () => {
+  const { 
+    itemsByDealer, 
+    totalItems, 
+    totalAmount, 
+    totalDealers,
+    updateQuantity, 
+    removeFromCart, 
+    clearDealerCart,
+    getDealerShippingCost,
+    getTotalWithShipping
+  } = useCart();
 
-  useEffect(() => {
-    // Group items by dealer
-    const grouped = cartItems.reduce((groups, item) => {
-      const dealerId = item.dealer?.id || 'unknown';
-      const dealerKey = `${dealerId}-${item.dealer?.company_name || 'Unknown Dealer'}`;
-      
-      if (!groups[dealerKey]) {
-        groups[dealerKey] = {
-          dealer: item.dealer || {
-            id: 'unknown',
-            company_name: 'Unknown Dealer',
-            location: 'Unknown Location',
-            rating: 0,
-            verified: false
-          },
-          items: [],
-          subtotal: 0,
-          shipping: 0,
-          total: 0
-        };
-      }
-      
-      groups[dealerKey].items.push(item);
-      return groups;
-    }, {});
-
-    // Calculate totals for each dealer
-    const totals = {};
-    let overallTotal = 0;
-
-    Object.keys(grouped).forEach(dealerKey => {
-      const group = grouped[dealerKey];
-      let subtotal = 0;
-      
-      group.items.forEach(item => {
-        subtotal += (item.price || 0) * (item.quantity || 1);
-      });
-      
-      // Calculate shipping per dealer
-      const shipping = calculateShipping(group.dealer, subtotal);
-      const total = subtotal + shipping;
-      
-      group.subtotal = subtotal;
-      group.shipping = shipping;
-      group.total = total;
-      
-      totals[dealerKey] = {
-        subtotal,
-        shipping,
-        total
-      };
-      
-      overallTotal += total;
-    });
-
-    setGroupedItems(grouped);
-    setTotalsByDealer(totals);
-    setGrandTotal(overallTotal);
-  }, [cartItems]);
-
-  const calculateShipping = (dealer, subtotal) => {
-    // Mock shipping calculation - in real app, would use dealer's shipping rates
-    if (subtotal >= 100) return 0; // Free shipping over $100
-    
-    // Different dealers have different shipping rates
-    const baseRate = dealer?.shippingRate || 9.99;
-    return baseRate;
-  };
-
-  const handleQuantityUpdate = (item, newQuantity) => {
-    if (newQuantity <= 0) {
-      onRemoveItem(item.id);
-    } else {
-      onUpdateQuantity(item.id, newQuantity);
-    }
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: 'GHS'
-    }).format(price);
-  };
-
-  if (cartItems.length === 0) {
+  if (totalItems === 0) {
     return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center py-12">
-        <FiShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
-        <p className="text-gray-500 mb-6">Add some products to get started</p>
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FiShoppingCart className="w-12 h-12 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
+            <p className="text-gray-600 mb-6">
+              Discover amazing auto parts from our trusted dealers
+            </p>
+            <div className="flex gap-4 justify-center">
         <Link 
-          to="/products" 
-          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                to="/shop"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
         >
           Continue Shopping
         </Link>
+              <Link 
+                to="/dealers"
+                className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+              >
+                Browse Dealers
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Debug: Log cart items to console
-  if (process.env.NODE_ENV === 'development') {
-    console.log('MultiDealerCart received items:', cartItems);
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Cart Items grouped by dealer */}
-      {Object.entries(groupedItems).map(([dealerKey, group]) => (
-        <div key={dealerKey} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          {/* Dealer Header */}
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                  {group.dealer.logo ? (
-                    <img 
-                      src={group.dealer.logo} 
-                      alt={group.dealer.company_name} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-semibold text-gray-600">
-                      {group.dealer.company_name.substring(0, 2).toUpperCase()}
-                    </span>
-                  )}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
+          <p className="text-gray-600">
+            {totalItems} items from {totalDealers} dealer{totalDealers !== 1 ? 's' : ''}
+          </p>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{group.dealer.company_name}</h3>
-                  <div className="flex items-center space-x-3 text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <FiMapPin size={14} />
-                      <span>{group.dealer.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <FiStar
-                            key={i}
-                            size={14}
-                            className={i < Math.floor(group.dealer.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items by Dealer */}
+          <div className="lg:col-span-2 space-y-6">
+            {Object.values(itemsByDealer).map((dealerCart) => (
+              <DealerCartSection 
+                key={dealerCart.dealerId} 
+                dealerCart={dealerCart}
+                updateQuantity={updateQuantity}
+                removeFromCart={removeFromCart}
+                clearDealerCart={clearDealerCart}
+                getDealerShippingCost={getDealerShippingCost}
                           />
                         ))}
-                      </div>
-                      <span>({group.dealer.rating || '0.0'})</span>
-                    </div>
-                    {group.dealer.verified && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                        <FiCheck size={10} className="mr-1" />
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-500">
-                  {group.items.length} item{group.items.length !== 1 ? 's' : ''}
-                </div>
-                <div className="font-semibold text-gray-900">
-                  {formatPrice(group.total)}
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Items from this dealer */}
-          <div className="divide-y divide-gray-200">
-            {group.items.map((item, index) => (
-              <div key={`${item.id}-${index}`} className="p-6">
-                <div className="flex items-center space-x-4">
-                  {/* Product Image */}
-                  <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                    <img 
-                      src={item.image || item.product_images?.[0]?.url || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&h=100&q=80'} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <Link 
-                      to={`/products/${item.id}`}
-                      className="text-sm font-medium text-gray-900 hover:text-primary-600 line-clamp-2"
-                    >
-                      {item.name}
-                    </Link>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {item.category?.name || 'Auto Parts'}
-                    </p>
-                    <div className="flex items-center mt-2 space-x-4">
-                      <span className="text-lg font-semibold text-gray-900">
-                        {formatPrice(item.price || 0)}
-                      </span>
-                      {item.originalPrice && item.originalPrice > item.price && (
-                        <span className="text-sm text-gray-500 line-through">
-                          {formatPrice(item.originalPrice)}
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
+              
+              {/* Dealer Subtotals */}
+              <div className="space-y-3 mb-4">
+                {Object.values(itemsByDealer).map((dealerCart) => {
+                  const shipping = getDealerShippingCost(dealerCart.dealerId);
+                  return (
+                    <div key={dealerCart.dealerId} className="text-sm">
+                      <div className="flex justify-between text-gray-600 mb-1">
+                        <span>{dealerCart.dealerName}</span>
+                        <span>${dealerCart.subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-500 text-xs">
+                        <span className="flex items-center gap-1">
+                          <FiTruck className="w-3 h-3" />
+                          Shipping
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Quantity Controls */}
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center border border-gray-300 rounded-lg">
-                      <button
-                        onClick={() => handleQuantityUpdate(item, (item.quantity || 1) - 1)}
-                        className="p-2 hover:bg-gray-100 rounded-l-lg transition-colors"
-                        disabled={item.quantity <= 1}
-                      >
-                        <FiMinus size={16} />
-                      </button>
-                      <span className="px-4 py-2 text-center min-w-[3rem]">
-                        {item.quantity || 1}
-                      </span>
-                      <button
-                        onClick={() => handleQuantityUpdate(item, (item.quantity || 1) + 1)}
-                        className="p-2 hover:bg-gray-100 rounded-r-lg transition-colors"
-                      >
-                        <FiPlus size={16} />
-                      </button>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">
-                        {formatPrice((item.price || 0) * (item.quantity || 1))}
+                        <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
                       </div>
                     </div>
-
-                    <button
-                      onClick={() => onRemoveItem(item.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <FiX size={20} />
-                    </button>
+                  );
+                })}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
 
-          {/* Dealer Totals */}
-          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">{formatPrice(group.subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <div className="flex items-center space-x-1">
-                  <FiTruck size={14} />
-                  <span className="text-gray-600">Shipping:</span>
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Subtotal</span>
+                  <span>${totalAmount.toFixed(2)}</span>
                 </div>
-                <span className="font-medium">
-                  {group.shipping === 0 ? 'Free' : formatPrice(group.shipping)}
-                </span>
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Shipping</span>
+                  <span>
+                    ${(getTotalWithShipping() - totalAmount).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg font-semibold text-gray-900">
+                  <span>Total</span>
+                  <span>${getTotalWithShipping().toFixed(2)}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-base font-semibold pt-2 border-t border-gray-200">
-                <span>Total from {group.dealer.company_name}:</span>
-                <span>{formatPrice(group.total)}</span>
+
+              <button className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-6 flex items-center justify-center gap-2">
+                Proceed to Checkout
+                <FiArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="mt-4 text-center">
+                <Link 
+                  to="/shop"
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  Continue Shopping
+                </Link>
               </div>
             </div>
           </div>
         </div>
-      ))}
-
-      {/* Grand Total */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Order Total</h3>
-            <p className="text-sm text-gray-500">
-              Items from {Object.keys(groupedItems).length} dealer{Object.keys(groupedItems).length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-gray-900">
-              {formatPrice(grandTotal)}
-            </div>
-            <p className="text-sm text-gray-500">
-              Shipping calculated per dealer
-            </p>
-          </div>
-        </div>
-
-        {!isCheckout && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => onCheckout(groupedItems)}
-              className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 transition-colors font-medium"
-            >
-              Proceed to Checkout
-            </button>
-            <Link
-              to="/products"
-              className="block text-center text-primary-600 hover:text-primary-700 mt-3 text-sm"
-            >
-              Continue Shopping
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );
 };
 
-MultiDealerCart.propTypes = {
-  cartItems: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    name: PropTypes.string.isRequired,
-    price: PropTypes.number.isRequired,
-    quantity: PropTypes.number,
-    image: PropTypes.string,
-    product_images: PropTypes.array,
-    category: PropTypes.object,
-    dealer: PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      company_name: PropTypes.string,
-      location: PropTypes.string,
-      rating: PropTypes.number,
-      verified: PropTypes.bool,
-      logo: PropTypes.string,
-      shippingRate: PropTypes.number
-    })
-  })),
-  onUpdateQuantity: PropTypes.func.isRequired,
-  onRemoveItem: PropTypes.func.isRequired,
-  onCheckout: PropTypes.func,
-  isCheckout: PropTypes.bool
+const DealerCartSection = ({ 
+  dealerCart, 
+  updateQuantity, 
+  removeFromCart, 
+  clearDealerCart,
+  getDealerShippingCost 
+}) => {
+  const shipping = getDealerShippingCost(dealerCart.dealerId);
+  const total = dealerCart.subtotal + shipping;
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Dealer Header */}
+      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Dealer Avatar */}
+            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+              {dealerCart.dealerInfo?.logo_url ? (
+                <img 
+                  src={dealerCart.dealerInfo.logo_url} 
+                  alt={dealerCart.dealerName}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              ) : (
+                <span className="text-blue-600 font-bold text-lg">
+                  {dealerCart.dealerName.charAt(0)}
+                </span>
+              )}
+                  </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                {dealerCart.dealerName}
+                {dealerCart.dealerInfo?.isVerified && (
+                                      <FiCheckCircle className="w-4 h-4 text-green-500" />
+                )}
+              </h3>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                {dealerCart.dealerInfo?.location && (
+                  <span className="flex items-center gap-1">
+                    <FiMapPin className="w-3 h-3" />
+                    {dealerCart.dealerInfo.location}
+                      </span>
+                )}
+                {dealerCart.dealerInfo?.rating && (
+                  <span className="flex items-center gap-1">
+                    <FiStar className="w-3 h-3 text-yellow-400 fill-current" />
+                    {dealerCart.dealerInfo.rating.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                    </div>
+
+                    <div className="text-right">
+            <p className="text-sm text-gray-600">{dealerCart.itemCount} items</p>
+                    <button
+              onClick={() => clearDealerCart(dealerCart.dealerId)}
+              className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
+              Clear all
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+      {/* Cart Items */}
+      <div className="divide-y divide-gray-200">
+        {dealerCart.items.map((item) => (
+          <CartItem 
+            key={item.product_id} 
+            item={item}
+            updateQuantity={updateQuantity}
+            removeFromCart={removeFromCart}
+          />
+            ))}
+          </div>
+
+      {/* Dealer Cart Summary */}
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="text-sm">
+            <div className="flex justify-between mb-1">
+                <span className="text-gray-600">Subtotal:</span>
+              <span className="font-medium">${dealerCart.subtotal.toFixed(2)}</span>
+              </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600 flex items-center gap-1">
+                <FiTruck className="w-3 h-3" />
+                Shipping:
+              </span>
+                <span className="font-medium">
+                {shipping === 0 ? (
+                  <span className="text-green-600">FREE</span>
+                ) : (
+                  `$${shipping.toFixed(2)}`
+                )}
+                </span>
+            </div>
+          </div>
+          
+          <div className="text-right">
+            <p className="text-lg font-semibold text-gray-900">
+              ${total.toFixed(2)}
+            </p>
+            {shipping === 0 && dealerCart.subtotal < 100 && (
+              <p className="text-xs text-gray-500">
+                Free shipping on orders over $100
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CartItem = ({ item, updateQuantity, removeFromCart }) => {
+  const handleQuantityChange = (newQuantity) => {
+    if (newQuantity <= 0) {
+      removeFromCart(item.product_id);
+    } else {
+      updateQuantity(item.product_id, newQuantity);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex items-start gap-4">
+        {/* Product Image */}
+        <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          <img 
+            src={item.image || 'https://via.placeholder.com/80x80?text=Auto+Part'} 
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Product Info */}
+        <div className="flex-1">
+          <h4 className="font-medium text-gray-900 mb-1">{item.name}</h4>
+          <p className="text-sm text-gray-600 mb-2">SKU: {item.sku || 'N/A'}</p>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {item.originalPrice && (
+                <span className="text-sm text-gray-500 line-through">
+                  ${item.originalPrice.toFixed(2)}
+                </span>
+              )}
+              <span className="font-semibold text-gray-900">
+                ${item.price.toFixed(2)}
+              </span>
+            </div>
+
+            {item.stock_quantity <= 5 && (
+              <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                Only {item.stock_quantity} left
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Quantity Controls */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center border border-gray-300 rounded">
+            <button
+              onClick={() => handleQuantityChange(item.quantity - 1)}
+              className="p-2 hover:bg-gray-50 transition-colors"
+              disabled={item.quantity <= 1}
+            >
+              <FiMinus className="w-4 h-4" />
+            </button>
+            <span className="px-3 py-2 min-w-[3rem] text-center">
+              {item.quantity}
+            </span>
+            <button
+              onClick={() => handleQuantityChange(item.quantity + 1)}
+              className="p-2 hover:bg-gray-50 transition-colors"
+              disabled={item.quantity >= item.stock_quantity}
+            >
+              <FiPlus className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={() => removeFromCart(item.product_id)}
+            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+          >
+            <FiTrash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default MultiDealerCart; 

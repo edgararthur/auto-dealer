@@ -1,452 +1,452 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
+  FiSearch, 
   FiShoppingCart, 
   FiHeart, 
   FiUser, 
-  FiSearch, 
   FiMenu, 
   FiX, 
   FiChevronDown,
-  FiLogOut,
-  FiSettings,
-  FiPackage,
-  FiBookmark,
-  FiBox,
-  FiPhone,
-  FiMail,
-  FiMap,
+  FiBell,
+  FiMapPin,
   FiHelpCircle,
-  FiAward,
-  FiTag
+  FiArrowRight
 } from 'react-icons/fi';
-import { ThemeSwitcher } from '../../components/common';
+import { useAuth } from '../../contexts/AuthContext-bypass';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
-import AdvancedSearch from '../search/AdvancedSearch';
-import SmartNotifications from '../notifications/SmartNotifications';
-
-// Note: In a real implementation, these would come from the cart context/service
-const CART_ITEMS_COUNT = 5;
-const WISHLIST_ITEMS_COUNT = 3;
+import { LiveSearchDropdown } from '../common';
+import CurrencySelector from '../common/CurrencySelector';
 
 const StoreHeader = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [isShopMegaMenuOpen, setIsShopMegaMenuOpen] = useState(false);
+  
   const { user, logout } = useAuth();
   const { items: cartItems } = useCart();
-  const { wishlistItems } = useWishlist();
+  const { items: wishlistItems } = useWishlist();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(null);
+  
+  const userMenuRef = useRef(null);
+  const categoriesRef = useRef(null);
+  const shopMegaMenuRef = useRef(null);
 
-  // Mock categories - These would come from an API in a real implementation
-  const categories = [
-    {
-      name: 'Engine Parts',
-      icon: <FiBox />,
-      subcategories: ['Oil Filters', 'Air Filters', 'Spark Plugs', 'Fuel Pumps']
-    },
-    {
-      name: 'Brakes & Suspension',
-      icon: <FiBox />,
-      subcategories: ['Brake Pads', 'Shock Absorbers', 'Coil Springs', 'Struts']
-    },
-    {
-      name: 'Lighting & Electrical',
-      icon: <FiBox />,
-      subcategories: ['Headlights', 'Taillights', 'Batteries', 'Alternators']
-    },
-    {
-      name: 'Interior Accessories',
-      icon: <FiBox />,
-      subcategories: ['Floor Mats', 'Seat Covers', 'Steering Wheels', 'Dashboard Accessories']
-    }
-  ];
+  // Calculate total cart items
+  const cartItemCount = cartItems?.reduce((total, item) => total + item.quantity, 0) || 0;
+  const wishlistItemCount = wishlistItems?.length || 0;
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Failed to log out', error);
-    }
-  };
-
-  // Close menus when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (isAccountMenuOpen && !event.target.closest('.account-menu-container')) {
-        setIsAccountMenuOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
       }
-      if (isCategoriesOpen && !event.target.closest('.categories-menu-container')) {
+      if (categoriesRef.current && !categoriesRef.current.contains(event.target)) {
         setIsCategoriesOpen(false);
+      }
+      if (shopMegaMenuRef.current && !shopMegaMenuRef.current.contains(event.target)) {
+        setIsShopMegaMenuOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isAccountMenuOpen, isCategoriesOpen]);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+
+
+  const handleLogout = () => {
+    logout();
+    setIsUserMenuOpen(false);
+    navigate('/auth/login');
+  };
+
+  const mainCategories = [
+    { name: 'Engine Parts', href: '/categories/engine-parts' },
+    { name: 'Brake System', href: '/categories/brake-system' },
+    { name: 'Suspension', href: '/categories/suspension' },
+    { name: 'Electrical', href: '/categories/electrical' },
+    { name: 'Body & Exterior', href: '/categories/body-exterior' },
+    { name: 'Interior', href: '/categories/interior' },
+    { name: 'Fluids & Filters', href: '/categories/fluids-filters' },
+    { name: 'Tools & Equipment', href: '/categories/tools' }
+  ];
+
+  // Mega Menu Categories - Auto Parts focused
+  const megaMenuData = {
+    car: {
+      title: 'Car',
+      categories: [
+        { name: 'Auto and truck parts', href: '/categories/auto-truck-parts' },
+        { name: 'Tools and supplies', href: '/categories/tools-supplies' },
+        { name: 'Turbo chargers', href: '/categories/turbo-chargers' },
+        { name: 'Clothing and merchandise', href: '/categories/clothing-merchandise' },
+        { name: 'Shock absorbers', href: '/categories/shock-absorbers' },
+        { name: 'Electronic and GPS', href: '/categories/electronic-gps' },
+        { name: 'Air intake', href: '/categories/air-intake' },
+        { name: 'Deals', href: '/deals' },
+        { name: 'Sell on Autora', href: '/sell' }
+      ]
+    },
+    motorcycle: {
+      title: 'Motorcycle and more',
+      categories: [
+        { name: 'Motorcycle parts', href: '/categories/motorcycle-parts' },
+        { name: 'Body and frame', href: '/categories/body-frame' },
+        { name: 'Engines and parts', href: '/categories/engines-parts' },
+        { name: 'Accessories', href: '/categories/accessories' },
+        { name: 'Exhausts and systems', href: '/categories/exhausts-systems' },
+        { name: 'Rims', href: '/categories/rims' },
+        { name: 'Deals', href: '/deals' },
+        { name: 'Sell on Autora', href: '/sell' }
+      ]
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-50 shadow-luxury dark:shadow-none">
-      {/* Top bar with contact info and account links */}
-      <div className="bg-neutral-900 text-neutral-200 px-4 py-2 text-xs dark:bg-neutral-950">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-6">
-            <a href="tel:+233509999999" className="hover:text-orange-300 transition-colors duration-200">
-              <FiPhone className="inline mr-1" size={12} /> +233 50 999 9999
-            </a>
-            <a href="mailto:support@Autora.com" className="hidden sm:inline-flex items-center hover:text-orange-300 transition-colors duration-200">
-              <FiMail className="inline mr-1" size={12} /> support@Autora.com
-            </a>
-          </div>
-          <div className="flex items-center space-x-6">
-            <Link to="/track-order" className="hover:text-orange-300 transition-colors duration-200 flex items-center">
-              <FiPackage className="inline mr-1" size={12} /> Track Order
-            </Link>
-            <Link to="/dealers" className="hidden sm:inline-flex items-center hover:text-orange-300 transition-colors duration-200">
-              <FiMap className="inline mr-1" size={12} /> Find Dealers
-            </Link>
-            <Link to="/help" className="hidden sm:inline-flex items-center hover:text-orange-300 transition-colors duration-200">
-              <FiHelpCircle className="inline mr-1" size={12} /> Help
-            </Link>
-            <div className="border-l border-neutral-700 pl-4">
-              <ThemeSwitcher variant="icon" className="text-neutral-200" />
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      {/* Top Bar */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-8 text-xs">
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-600">Hi {user?.name || 'Guest'}!</span>
+              <Link to="/help" className="text-gray-600 hover:text-blue-600">Help & Contact</Link>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-600">🇺🇸 Ship to United States</span>
+              <Link to="/sell" className="text-gray-600 hover:text-blue-600">Sell</Link>
+              <Link to="/watchlist" className="text-gray-600 hover:text-blue-600">Watchlist</Link>
+              <Link to="/account" className="text-gray-600 hover:text-blue-600">My Account</Link>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Main header with logo, search and cart */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-4 py-4 shadow-inner dark:bg-neutral-900">
-        <div className="max-w-7xl mx-auto flex items-center">
-          {/* Mobile menu button */}
-          <button
-            className="lg:hidden mr-3 text-white hover:text-orange-300 transition-colors duration-200"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-menu"
-          >
-            <span className="sr-only">Open main menu</span>
-            {isMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-          </button>
-          
+
+      {/* Main Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex-shrink-0 mr-8">
-            <Link to="/" className="flex items-center">
-              <span className="text-3xl font-bold text-white font-display tracking-wider">
-                <span className="text-orange-400">Auto</span>ra
-              </span>
+          <Link to="/" className="flex items-center">
+            <div className="text-2xl font-bold text-blue-600">
+              <span className="text-red-500">Aut</span>
+              <span className="text-blue-500">ora</span>
+            </div>
+          </Link>
+
+          {/* Categories Dropdown */}
+          <div className="relative" ref={categoriesRef}>
+            <button
+              onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Shop by category
+              <FiChevronDown className="ml-1 w-4 h-4" />
+            </button>
+            
+            {isCategoriesOpen && (
+              <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                {mainCategories.map((category) => (
+                  <Link
+                    key={category.name}
+                    to={category.href}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setIsCategoriesOpen(false)}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Search Bar - Live Search */}
+          <div className="flex-1 max-w-2xl mx-6">
+            <LiveSearchDropdown className="w-full" />
+          </div>
+
+          {/* Right Navigation */}
+          <div className="flex items-center space-x-4">
+            {/* Advanced Search */}
+            <Link to="/search/advanced" className="text-xs text-blue-600 hover:underline">
+              Advanced
             </Link>
-          </div>
-          
-          {/* Advanced Search - Takes most of the space */}
-          <div className="flex-1 max-w-3xl">
-            <AdvancedSearch 
-              className="w-full"
-              showTrending={true}
-              showRecentSearches={true}
-            />
-          </div>
-          
-          {/* User actions */}
-          <div className="flex items-center ml-6 space-x-6">
-            {/* Wishlist icon with counter */}
-            <Link to="/wishlist" className="relative text-white transition-transform hover:scale-110 hover:text-orange-300 duration-200">
-              <FiHeart size={22} />
-              {wishlistItems?.length > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-orange-400 rounded-full">
-                  {wishlistItems.length}
+
+            {/* Watchlist */}
+            <Link to="/watchlist" className="flex items-center text-sm text-gray-700 hover:text-gray-900">
+              <FiHeart className="w-4 h-4 mr-1" />
+              Watchlist
+              {wishlistItemCount > 0 && (
+                <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                  {wishlistItemCount}
                 </span>
               )}
             </Link>
-            
-            {/* Smart Notifications */}
-            <SmartNotifications className="text-white" />
-            
-            {/* Cart icon with counter */}
-            <Link to="/cart" className="relative text-white transition-transform hover:scale-110 hover:text-orange-300 duration-200">
-              <FiShoppingCart size={22} />
-              {cartItems?.length > 0 && (
-                <span className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 text-xs font-medium text-neutral-900 bg-orange-400 rounded-full animate-pulse-slow">
-                  {cartItems.length}
-                </span>
-              )}
-            </Link>
-            
-            {/* Account dropdown */}
-            <div className="relative account-menu-container">
+
+            {/* My Account */}
+            <div className="relative" ref={userMenuRef}>
               <button
-                className="flex items-center text-white transition-transform hover:scale-105 hover:text-orange-300 duration-200"
-                onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
-                aria-expanded={isAccountMenuOpen}
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center text-sm text-gray-700 hover:text-gray-900"
               >
-                <FiUser size={22} className="mr-1" />
-                <span className="hidden md:inline text-sm font-medium">
-                  {user ? 'Account' : 'Sign In'}
-                </span>
-                <FiChevronDown size={16} className={`ml-1 transition-transform duration-200 ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
+                My Account
+                <FiChevronDown className="ml-1 w-4 h-4" />
               </button>
               
-              {/* Account dropdown menu */}
-              {isAccountMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-luxury z-50 animate-fade-in">
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
                   {user ? (
-                    <div>
-                      <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-neutral-100 rounded-t-md">
-                        <p className="text-sm font-medium text-neutral-900">Hello, {user.profile?.name || user.email}</p>
-                        <p className="text-xs text-neutral-500 truncate">{user.email}</p>
-                      </div>
-                      
-                      <div className="py-2">
-                        <Link
-                          to="/account"
-                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
-                        >
-                          <FiUser className="mr-3 text-primary-500" size={16} />
-                          My Account
-                        </Link>
-                        
-                        <Link
-                          to="/orders"
-                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
-                        >
-                          <FiPackage className="mr-3 text-primary-500" size={16} />
-                          My Orders
-                        </Link>
-                        
-                        <Link
-                          to="/wishlist"
-                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
-                        >
-                          <FiHeart className="mr-3 text-primary-500" size={16} />
-                          Saved Items
-                        </Link>
-                        
-                        <Link
-                          to="/settings"
-                          className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
-                        >
-                          <FiSettings className="mr-3 text-primary-500" size={16} />
-                          Settings
-                        </Link>
-                        
-                        <div className="border-t border-neutral-100 my-1"></div>
-                        
-                        <button
-                          onClick={handleLogout}
-                          className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600 transition-colors duration-200"
-                        >
-                          <FiLogOut className="mr-3 text-primary-500" size={16} />
-                          Logout
-                        </button>
-                      </div>
-                    </div>
+                    <>
+                      <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        My Account
+                      </Link>
+                      <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Purchase History
+                      </Link>
+                      <Link to="/selling" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Selling
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        Sign Out
+                      </button>
+                    </>
                   ) : (
-                    <div>
-                      <div className="p-4">
-                        <Link
-                          to="/auth/login"
-                          className="w-full mb-2 inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200"
-                        >
-                          Login
-                        </Link>
-                        <Link
-                          to="/auth/register"
-                          className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-neutral-300 text-sm font-medium rounded-md shadow-sm text-neutral-700 bg-white hover:bg-neutral-50 transition-colors duration-200"
-                        >
-                          Register
-                        </Link>
-                      </div>
-                    </div>
+                    <>
+                      <Link to="/auth/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Sign In
+                      </Link>
+                      <Link to="/auth/register" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        Register
+                      </Link>
+                    </>
                   )}
                 </div>
               )}
             </div>
+
+            {/* Shopping Cart */}
+            <Link to="/cart" className="flex items-center text-sm text-gray-700 hover:text-gray-900">
+              <FiShoppingCart className="w-4 h-4 mr-1" />
+              Cart
+              {cartItemCount > 0 && (
+                <span className="ml-1 bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
       </div>
-      
-      {/* Categories bar - Only visible on desktop */}
-      <nav className="bg-white shadow-sm border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center">
-            {/* All Categories dropdown */}
-            <div className="relative categories-menu-container">
-              <button
-                className="flex items-center py-3.5 px-5 text-sm font-semibold text-neutral-800 hover:text-primary-600 transition-colors duration-200"
-                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                aria-expanded={isCategoriesOpen}
-                onMouseEnter={() => setIsCategoriesOpen(true)}
+
+      {/* Navigation Links */}
+      <div className="border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center space-x-8 h-10 text-sm relative">
+            <Link to="/" className="text-gray-600 hover:text-gray-900">Home</Link>
+            
+            {/* Shop Link with Mega Menu */}
+            <div 
+              className="relative"
+              ref={shopMegaMenuRef}
+              onMouseEnter={() => setIsShopMegaMenuOpen(true)}
+              onMouseLeave={() => setIsShopMegaMenuOpen(false)}
+            >
+              <Link 
+                to="/shop" 
+                className="text-gray-600 hover:text-gray-900 py-2 px-1"
               >
-                <FiMenu className="mr-2" size={18} />
-                All Categories
-                <FiChevronDown className={`ml-2 transition-transform duration-200 ${isCategoriesOpen ? 'rotate-180' : ''}`} size={16} />
-              </button>
+                Shop
+              </Link>
               
-              {/* Mega menu for categories */}
-              {isCategoriesOpen && (
-                <div 
-                  className="absolute left-0 mt-0 w-full bg-white shadow-luxury z-40 animate-fade-in"
-                  style={{ width: '700px' }}
-                  onMouseLeave={() => setIsCategoriesOpen(false)}
-                >
-                  <div className="flex h-96">
-                    {/* Categories sidebar */}
-                    <div className="w-1/3 bg-neutral-50 border-r border-neutral-100">
-                      <ul className="py-2">
-                        {categories.map((category, idx) => (
-                          <li key={idx}>
-                            <button
-                              className={`flex items-center w-full text-left px-4 py-3.5 text-sm hover:bg-neutral-100 transition-colors duration-200 ${activeCategory === idx ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 font-medium border-l-4 border-primary-600' : 'text-neutral-800 border-l-4 border-transparent'}`}
-                              onMouseEnter={() => setActiveCategory(idx)}
-                              onClick={() => navigate(`/category/${category.name.toLowerCase().replace(/ /g, '-')}`)}
+              {/* Mega Menu Dropdown */}
+              {isShopMegaMenuOpen && (
+                <div className="absolute left-0 top-full mt-0 w-screen max-w-4xl bg-white border border-gray-200 shadow-xl z-50 rounded-b-lg">
+                  <div className="grid grid-cols-3 gap-0">
+                    {/* Left Column - Car Categories */}
+                    <div className="p-6 border-r border-gray-200">
+                      <h3 className="font-semibold text-gray-900 mb-4 text-base">
+                        {megaMenuData.car.title}
+                      </h3>
+                      <ul className="space-y-2">
+                        {megaMenuData.car.categories.map((category, index) => (
+                          <li key={index}>
+                            <Link
+                              to={category.href}
+                              className="text-sm text-gray-600 hover:text-blue-600 hover:underline block py-1"
+                              onClick={() => setIsShopMegaMenuOpen(false)}
                             >
-                              <span className="mr-3 text-neutral-400">{category.icon}</span>
                               {category.name}
-                            </button>
+                            </Link>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    
-                    {/* Subcategories content */}
-                    <div className="w-2/3 p-6">
-                      {activeCategory !== null && (
+
+                    {/* Middle Column - Motorcycle Categories */}
+                    <div className="p-6 border-r border-gray-200">
+                      <h3 className="font-semibold text-gray-900 mb-4 text-base">
+                        {megaMenuData.motorcycle.title}
+                      </h3>
+                      <ul className="space-y-2">
+                        {megaMenuData.motorcycle.categories.map((category, index) => (
+                          <li key={index}>
+                            <Link
+                              to={category.href}
+                              className="text-sm text-gray-600 hover:text-blue-600 hover:underline block py-1"
+                              onClick={() => setIsShopMegaMenuOpen(false)}
+                            >
+                              {category.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Right Column - Promotional Banner */}
+                    <div className="p-6 relative rounded-br-lg overflow-hidden min-h-[300px]">
+                      {/* Multiple Background Images with Blue Overlay */}
+                      <div className="absolute inset-0">
+                        {/* Primary automotive parts background */}
+                        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60"
+                             style={{
+                               backgroundImage: `url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2072&q=80')`
+                             }}>
+                        </div>
+                        
+                        {/* Secondary engine parts overlay */}
+                        <div className="absolute top-0 right-0 w-1/3 h-1/2 bg-cover bg-center bg-no-repeat opacity-40"
+                             style={{
+                               backgroundImage: `url('https://images.unsplash.com/photo-1580273916550-e323be2ae537?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')`
+                             }}>
+                        </div>
+                        
+                        {/* Car maintenance background accent */}
+                        <div className="absolute bottom-0 left-0 w-1/2 h-1/3 bg-cover bg-center bg-no-repeat opacity-30"
+                             style={{
+                               backgroundImage: `url('https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80')`
+                             }}>
+                        </div>
+                        
+                        {/* Blue Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/85 via-blue-700/90 to-blue-800/95"></div>
+                        
+                        {/* Subtle Pattern Overlay */}
+                        <div className="absolute inset-0 opacity-10" 
+                             style={{
+                               backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="7" cy="7" r="1"/%3E%3Ccircle cx="13" cy="13" r="1"/%3E%3Ccircle cx="19" cy="19" r="1"/%3E%3Ccircle cx="25" cy="25" r="1"/%3E%3Ccircle cx="31" cy="31" r="1"/%3E%3Ccircle cx="37" cy="37" r="1"/%3E%3Ccircle cx="43" cy="43" r="1"/%3E%3Ccircle cx="49" cy="49" r="1"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`
+                             }}>
+                        </div>
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="relative z-10 h-full flex flex-col justify-between text-white">
                         <div>
-                          <h3 className="text-lg font-medium text-neutral-900 mb-4 font-display">
-                            {categories[activeCategory].name}
-                          </h3>
-                          <div className="grid grid-cols-2 gap-y-4">
-                            {categories[activeCategory].subcategories.map((subcat, idx) => (
-                              <Link
-                                key={idx}
-                                to={`/category/${categories[activeCategory].name.toLowerCase().replace(/ /g, '-')}/${subcat.toLowerCase().replace(/ /g, '-')}`}
-                                className="text-sm text-neutral-700 hover:text-primary-600 transition-colors duration-200 flex items-center"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mr-2"></span>
-                                {subcat}
-                              </Link>
-                            ))}
+                          <div className="flex items-center mb-2">
+                            <h3 className="font-bold text-xl">Auto Parts</h3>
+                            <span className="ml-2 bg-yellow-400 text-blue-900 text-xs px-2 py-1 rounded-full font-semibold">
+                              HOT DEALS
+                            </span>
+                          </div>
+                          <p className="text-blue-100 text-sm mb-4 font-medium">
+                            Premium quality at unbeatable prices
+                          </p>
+                          <div className="text-sm text-blue-100 mb-6 space-y-1">
+                            <div className="flex items-center">
+                              <span className="w-5 h-5 mr-2">⭐</span>
+                              <span>OEM & aftermarket parts</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="w-5 h-5 mr-2">🚚</span>
+                              <span>Same day shipping</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="w-5 h-5 mr-2">💰</span>
+                              <span>Up to 40% off select items</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="w-5 h-5 mr-2">🔧</span>
+                              <span>Expert installation guides</span>
+                            </div>
                           </div>
                         </div>
-                      )}
+                        
+                        <div className="space-y-3">
+                          <Link
+                            to="/shop"
+                            className="inline-flex items-center justify-center bg-white text-blue-600 px-6 py-3 rounded-lg text-sm font-bold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 w-full"
+                            onClick={() => setIsShopMegaMenuOpen(false)}
+                          >
+                            Shop All Parts
+                            <FiArrowRight className="ml-2 w-4 h-4" />
+                          </Link>
+                          
+                          <Link
+                            to="/deals"
+                            className="inline-flex items-center justify-center border-2 border-white text-white px-6 py-2 rounded-lg text-xs font-medium hover:bg-white hover:text-blue-600 transition-all duration-200 w-full"
+                            onClick={() => setIsShopMegaMenuOpen(false)}
+                          >
+                            View Today's Deals
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Bottom Section - Popular Categories */}
+                  <div className="border-t border-gray-200 p-4 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-6 text-xs">
+                        <span className="text-gray-500">Popular:</span>
+                        <Link to="/categories/brake-pads" className="text-blue-600 hover:underline">Brake Pads</Link>
+                        <Link to="/categories/oil-filters" className="text-blue-600 hover:underline">Oil Filters</Link>
+                        <Link to="/categories/spark-plugs" className="text-blue-600 hover:underline">Spark Plugs</Link>
+                        <Link to="/categories/air-filters" className="text-blue-600 hover:underline">Air Filters</Link>
+                        <Link to="/categories/batteries" className="text-blue-600 hover:underline">Batteries</Link>
+                      </div>
+                      <Link 
+                        to="/categories" 
+                        className="text-xs text-blue-600 hover:underline"
+                        onClick={() => setIsShopMegaMenuOpen(false)}
+                      >
+                        View all categories →
+                      </Link>
                     </div>
                   </div>
                 </div>
               )}
             </div>
             
-            {/* Featured categories links */}
-            <div className="hidden lg:flex space-x-6 ml-4">
-              <Link to="/products" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-primary-600 hover:text-primary-600 transition-all duration-200">
-                <FiBox className="mr-1.5" size={16} />
-                Products
-              </Link>
-              <Link to="/deals" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-accent-500 hover:text-accent-600 transition-all duration-200">
-                <FiTag className="mr-1.5" size={16} />
-                Today's Deals
-              </Link>
-              <Link to="/new-arrivals" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-secondary-600 hover:text-secondary-600 transition-all duration-200">
-                <FiPackage className="mr-1.5" size={16} />
-                New Arrivals
-              </Link>
-              <Link to="/best-sellers" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-success-600 hover:text-success-600 transition-all duration-200">
-                <FiAward className="mr-1.5" size={16} />
-                Best Sellers
-              </Link>
-              <Link to="/brands" className="flex items-center py-3.5 px-2 text-sm font-medium text-neutral-800 border-b-2 border-transparent hover:border-orange-500 hover:text-orange-600 transition-all duration-200">
-                <FiBookmark className="mr-1.5" size={16} />
-                Brands
-              </Link>
-            </div>
-            
-            <div className="ml-auto hidden lg:block">
-              <div className="bg-gradient-to-r from-orange-400 to-orange-500 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-lg">
-                Premium Quality Guaranteed
-              </div>
-            </div>
+            <Link to="/brands" className="text-gray-600 hover:text-gray-900">Brands</Link>
+            <Link to="/deals" className="text-gray-600 hover:text-gray-900">Deals</Link>
+            <Link to="/new-arrivals" className="text-gray-600 hover:text-gray-900">New Arrivals</Link>
+            <Link to="/best-sellers" className="text-gray-600 hover:text-gray-900">Best Sellers</Link>
+            <Link to="/help" className="text-gray-600 hover:text-gray-900">Help</Link>
           </div>
         </div>
-      </nav>
-      
-      {/* Mobile menu, show/hide based on menu state */}
-      {isMenuOpen && (
-        <div className="lg:hidden bg-white shadow-lg animate-fade-in">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link
-              to="/deals"
-              className="flex items-center px-3 py-2.5 rounded-md text-base text-accent-600 font-medium hover:bg-neutral-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <FiTag className="mr-2" size={18} />
-              Today's Deals
-            </Link>
-            
-            <Link
-              to="/new-arrivals"
-              className="flex items-center px-3 py-2.5 rounded-md text-base text-secondary-600 font-medium hover:bg-neutral-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <FiPackage className="mr-2" size={18} />
-              New Arrivals
-            </Link>
-            
-            <Link
-              to="/best-sellers"
-              className="flex items-center px-3 py-2.5 rounded-md text-base text-success-600 font-medium hover:bg-neutral-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <FiAward className="mr-2" size={18} />
-              Best Sellers
-            </Link>
-            
-            <Link
-              to="/brands"
-              className="flex items-center px-3 py-2.5 rounded-md text-base text-orange-600 font-medium hover:bg-neutral-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <FiBookmark className="mr-2" size={18} />
-              Brands
-            </Link>
-            
-            <div className="border-t border-neutral-200 pt-2 mt-2">
-            {categories.map((category, idx) => (
-              <div key={idx}>
-                <Link
-                  to={`/category/${category.name.toLowerCase().replace(/ /g, '-')}`}
-                    className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                    <span className="mr-2 text-neutral-400">{category.icon}</span>
-                  {category.name}
-                </Link>
-              </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+            {mainCategories.map((category) => (
+              <Link
+                key={category.name}
+                to={category.href}
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {category.name}
+              </Link>
             ))}
-            </div>
-            
-            <div className="border-t border-neutral-200 pt-2 mt-2">
-              <Link
-                to="/track-order"
-                className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <FiPackage className="mr-2" size={18} />
-                Track Order
-              </Link>
-              <Link
-                to="/help"
-                className="flex items-center px-3 py-2.5 rounded-md text-base font-medium text-neutral-800 hover:bg-neutral-50 hover:text-primary-600"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <FiHelpCircle className="mr-2" size={18} />
-                Help Center
-              </Link>
-            </div>
           </div>
         </div>
       )}

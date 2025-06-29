@@ -5,6 +5,7 @@ import { useCart } from '../../contexts/CartContext';
 import { Button, Breadcrumb } from '../../components/common';
 import SavedCarts from '../../components/cart/SavedCarts';
 import MultiDealerCart from '../../components/cart/MultiDealerCart';
+import { formatPrice } from '../../utils/priceFormatter';
 
 // Shipping options
 const shippingOptions = [
@@ -34,14 +35,6 @@ const ShoppingCart = () => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [cartName, setCartName] = useState('');
   const [savingCart, setSavingCart] = useState(false);
-  
-  // Format price in Ghana Cedis
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: 'GHS'
-    }).format(price);
-  };
   
   // Calculate subtotal
   const calculateSubtotal = () => {
