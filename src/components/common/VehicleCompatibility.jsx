@@ -14,20 +14,31 @@ const VehicleCompatibility = ({ compatibility = [], compact = false, className =
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedMake, setSelectedMake] = useState('all');
 
-  if (!compatibility || compatibility.length === 0) {
+  // Filter out incomplete compatibility entries - only show entries with meaningful vehicle information
+  const validCompatibility = compatibility.filter(compat => {
+    // Must have at least year and make to be meaningful
+    if (!compat.year || !compat.make) return false;
+    
+    // Skip universal entries without specific vehicle info
+    if (compat.matchType === 'universal' && !compat.model) return false;
+    
+    return true;
+  });
+
+  if (!validCompatibility || validCompatibility.length === 0) {
     return (
       <div className={`bg-gray-50 rounded-lg p-4 ${className}`}>
         <div className="flex items-center text-gray-600">
           <FiInfo className="mr-2" />
-          <span className="text-sm">Vehicle compatibility information not available</span>
+          <span className="text-sm">Vehicle compatibility information is being updated for this product</span>
         </div>
       </div>
     );
   }
 
-  // Group compatibility by make and model
-  const groupedCompatibility = compatibility.reduce((acc, compat) => {
-    const key = compat.make || 'Universal';
+  // Group compatibility by make and model using valid compatibility only
+  const groupedCompatibility = validCompatibility.reduce((acc, compat) => {
+    const key = compat.make;
     if (!acc[key]) {
       acc[key] = {};
     }
@@ -41,12 +52,12 @@ const VehicleCompatibility = ({ compatibility = [], compact = false, className =
     return acc;
   }, {});
 
-  // Get unique years, makes for filtering
-  const allYears = [...new Set(compatibility.filter(c => c.year).map(c => c.year))].sort();
-  const allMakes = [...new Set(compatibility.filter(c => c.make).map(c => c.make))].sort();
+  // Get unique years, makes for filtering from valid compatibility
+  const allYears = [...new Set(validCompatibility.filter(c => c.year).map(c => c.year))].sort();
+  const allMakes = [...new Set(validCompatibility.filter(c => c.make).map(c => c.make))].sort();
 
   // Filter compatibility based on selections
-  const filteredCompatibility = compatibility.filter(compat => {
+  const filteredCompatibility = validCompatibility.filter(compat => {
     if (selectedYear !== 'all' && compat.year !== selectedYear) return false;
     if (selectedMake !== 'all' && compat.make !== selectedMake) return false;
     return true;
@@ -89,7 +100,7 @@ const VehicleCompatibility = ({ compatibility = [], compact = false, className =
               {compat.year && <span>{compat.year} </span>}
               {compat.make && <span className="capitalize">{compat.make} </span>}
               {compat.model && <span className="capitalize">{compat.model}</span>}
-              {!compat.year && !compat.make && !compat.model && <span>Universal Fit</span>}
+              {!compat.model && compat.make && <span>(All Models)</span>}
             </div>
             {compat.matchType && (
               <div className="text-xs mt-1">
@@ -110,12 +121,12 @@ const VehicleCompatibility = ({ compatibility = [], compact = false, className =
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center">
           <FiTruck className="mr-2" />
-          Vehicle Compatibility
+          Compatible Vehicles
           <span className="ml-2 text-sm font-normal text-gray-500">
-            ({compatibility.length} vehicle{compatibility.length !== 1 ? 's' : ''})
+            ({validCompatibility.length} vehicle{validCompatibility.length !== 1 ? 's' : ''})
           </span>
         </h3>
-        {compact && compatibility.length > 3 && (
+        {compact && validCompatibility.length > 3 && (
           <button
             onClick={() => setExpanded(!expanded)}
             className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center"
@@ -176,9 +187,9 @@ const VehicleCompatibility = ({ compatibility = [], compact = false, className =
       </div>
 
       {/* Summary for compact view */}
-      {compact && !expanded && compatibility.length > 3 && (
+      {compact && !expanded && validCompatibility.length > 3 && (
         <div className="mt-3 text-sm text-gray-600 text-center">
-          and {compatibility.length - 3} more vehicles...
+          and {validCompatibility.length - 3} more vehicles...
         </div>
       )}
 

@@ -235,7 +235,6 @@ const NewArrivals = () => {
                     tags: product.daysNew <= 7 ? ['NEW'] : []
                   }}
                   onAddToCart={handleAddToCart}
-                  showQuickActions={true}
                 />
               ))}
             </div>

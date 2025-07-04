@@ -25,40 +25,42 @@ const getCache = (key) => {
   return null;
 };
 
-// Smart search query parser
+// Enhanced smart search query parser with multi-field support
 const parseSearchQuery = (query) => {
-  if (!query) return { vehicleInfo: {}, productTerms: [], originalQuery: '', hasVehicleInfo: false };
+  if (!query) return {
+    vehicleInfo: {},
+    productTerms: [],
+    partNumbers: [],
+    originalQuery: '',
+    hasVehicleInfo: false,
+    hasPartNumber: false,
+    searchType: 'general'
+  };
 
   const originalQuery = query.toLowerCase().trim();
   const words = originalQuery.split(/\s+/);
-  
+
   const vehicleInfo = {
     year: '',
     make: '',
     model: ''
   };
   const productTerms = [];
+  const partNumbers = [];
   const remainingWords = [...words];
 
-  // Enhanced vehicle make database
+  // Enhanced vehicle make database with better matching
   const vehicleMakes = [
     'toyota', 'honda', 'ford', 'chevrolet', 'chevy', 'nissan', 'bmw', 'mercedes', 'mercedes-benz',
     'audi', 'volkswagen', 'vw', 'hyundai', 'kia', 'subaru', 'mazda', 'mitsubishi', 'lexus',
     'acura', 'infiniti', 'cadillac', 'buick', 'gmc', 'jeep', 'chrysler', 'dodge', 'ram',
-    'volvo', 'porsche', 'jaguar', 'land rover', 'mini', 'fiat', 'alfa romeo', 'tesla'
+    'volvo', 'porsche', 'jaguar', 'land rover', 'mini', 'fiat', 'alfa romeo', 'tesla',
+    'lincoln', 'saab', 'scion', 'isuzu', 'suzuki', 'daihatsu', 'geo', 'hummer', 'saturn',
+    'pontiac', 'oldsmobile', 'plymouth', 'eagle', 'daewoo', 'smart', 'maybach', 'bentley',
+    'rolls royce', 'ferrari', 'lamborghini', 'maserati', 'bugatti', 'koenigsegg', 'pagani'
   ];
 
-  // Common model names for better parsing
-  const commonModels = [
-    'corolla', 'camry', 'prius', 'rav4', 'highlander', 'sienna', 'tacoma', 'tundra',
-    'civic', 'accord', 'cr-v', 'pilot', 'odyssey', 'ridgeline',
-    'focus', 'fusion', 'escape', 'explorer', 'f-150', 'f150', 'mustang',
-    'malibu', 'impala', 'equinox', 'tahoe', 'silverado', 'corvette',
-    'altima', 'sentra', 'rogue', 'pathfinder', 'frontier', 'titan',
-    'series', '3-series', '5-series', '7-series', 'x1', 'x3', 'x5', 'x7'
-  ];
-
-  // Auto parts terms for better categorization
+  // Common auto parts terms for filtering
   const autoPartTerms = [
     'battery', 'brake', 'brakes', 'pad', 'pads', 'rotor', 'rotors', 'filter', 'filters',
     'oil', 'engine', 'transmission', 'alternator', 'starter', 'radiator', 'coolant',
@@ -66,75 +68,131 @@ const parseSearchQuery = (query) => {
     'taillight', 'bulb', 'fuse', 'relay', 'switch', 'motor', 'compressor', 'clutch',
     'tire', 'tires', 'wheel', 'wheels', 'suspension', 'shock', 'strut', 'spring',
     'exhaust', 'muffler', 'catalytic', 'converter', 'gasket', 'seal', 'bearing',
-    'fluid', 'antifreeze', 'windshield', 'wiper', 'wipers', 'mirror', 'door', 'handle'
+    'fluid', 'antifreeze', 'windshield', 'wiper', 'wipers', 'mirror', 'door', 'handle',
+    'window', 'glass', 'bumper', 'fender', 'hood', 'trunk', 'grille', 'spoiler',
+    'antenna', 'horn', 'siren', 'alarm', 'keychain', 'remote', 'key', 'lock',
+    'ignition', 'coil', 'wire', 'cable', 'harness', 'connector', 'terminal', 'fuse',
+    'thermostat', 'water', 'power', 'steering', 'rack', 'pinion', 'tie', 'rod',
+    'ball', 'joint', 'control', 'arm', 'sway', 'bar', 'link', 'mount', 'bushing'
   ];
 
   // Extract year (4-digit number between 1990 and current year + 2)
   const currentYear = new Date().getFullYear();
-  const yearMatch = words.find(word => {
+  const yearMatch = remainingWords.find(word => {
     const year = parseInt(word);
     return year >= 1990 && year <= currentYear + 2;
   });
-  
+
   if (yearMatch) {
     vehicleInfo.year = yearMatch;
     const index = remainingWords.indexOf(yearMatch);
     if (index > -1) remainingWords.splice(index, 1);
   }
 
-  // Extract make (check against known makes, including partial matches)
+  // Extract make with enhanced matching
   const makeMatch = remainingWords.find(word => {
-    return vehicleMakes.some(make => 
-      make === word || 
-      make.includes(word) || 
-      word.includes(make) ||
-      (make === 'mercedes-benz' && word === 'mercedes') ||
-      (make === 'chevrolet' && word === 'chevy') ||
-      (make === 'volkswagen' && word === 'vw')
-    );
+    return vehicleMakes.some(make => {
+      // Direct match
+      if (make === word) return true;
+      // Handle compound makes like "land rover"
+      if (make.includes(' ') && originalQuery.includes(make)) return true;
+      // Handle abbreviations
+      if (make === 'chevrolet' && word === 'chevy') return true;
+      if (make === 'volkswagen' && word === 'vw') return true;
+      if (make === 'mercedes-benz' && word === 'mercedes') return true;
+      return false;
+    });
   });
-  
+
   if (makeMatch) {
     // Map common abbreviations to full names
     if (makeMatch === 'chevy') vehicleInfo.make = 'chevrolet';
     else if (makeMatch === 'vw') vehicleInfo.make = 'volkswagen';
     else if (makeMatch === 'mercedes') vehicleInfo.make = 'mercedes-benz';
     else vehicleInfo.make = makeMatch;
-    
+
     const index = remainingWords.indexOf(makeMatch);
     if (index > -1) remainingWords.splice(index, 1);
   }
 
-  // Extract model (check against common models and remaining words)
-  const modelMatch = remainingWords.find(word => {
-    return commonModels.includes(word) || 
-           (word.length > 2 && !autoPartTerms.includes(word));
+  // DYNAMIC MODEL DETECTION - Extract any remaining word that could be a model
+  // After removing year, make, and known auto parts, assume remaining significant words are model
+  const modelCandidates = remainingWords.filter(word => {
+    // Skip if it's a known auto part term
+    if (autoPartTerms.includes(word.toLowerCase())) return false;
+    
+    // Skip very short words (likely not model names)
+    if (word.length < 2) return false;
+    
+    // Skip common words that are not vehicle models
+    const skipWords = ['the', 'and', 'or', 'for', 'with', 'in', 'on', 'at', 'to', 'from', 'by', 'of', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'shall'];
+    if (skipWords.includes(word.toLowerCase())) return false;
+    
+    // Skip numbers that aren't years
+    if (/^\d+$/.test(word) && (parseInt(word) < 1990 || parseInt(word) > currentYear + 2)) return false;
+    
+    // This could be a model name
+    return true;
   });
-  
-  if (modelMatch) {
-    vehicleInfo.model = modelMatch;
-    const index = remainingWords.indexOf(modelMatch);
+
+  // Take the first model candidate as the model
+  // This allows for any model name: corolla, camry, f150, mustang, wrangler, etc.
+  if (modelCandidates.length > 0) {
+    let detectedModel = modelCandidates[0];
+    
+    // Apply some common normalizations for known patterns
+    if (detectedModel === 'rav4') detectedModel = 'rav-4';
+    else if (detectedModel === 'crv') detectedModel = 'cr-v';
+    else if (detectedModel === 'hrv') detectedModel = 'hr-v';
+    else if (detectedModel === 'chr') detectedModel = 'c-hr';
+    else if (detectedModel === 'f150') detectedModel = 'f-150';
+    else if (detectedModel === 'f250') detectedModel = 'f-250';
+    else if (detectedModel === 'f350') detectedModel = 'f-350';
+    
+    vehicleInfo.model = detectedModel;
+    
+    // Remove the detected model from remaining words
+    const index = remainingWords.indexOf(modelCandidates[0]);
     if (index > -1) remainingWords.splice(index, 1);
   }
 
-  // Remaining words are product terms
+  // Handle part numbers (alphanumeric patterns)
+  const partNumberPattern = /^[A-Za-z0-9-]{3,}$/;
   remainingWords.forEach(word => {
-    if (word.length > 1) { // Include shorter terms that might be important
+    if (partNumberPattern.test(word) && word.length >= 3) {
+      partNumbers.push(word);
+    } else if (word.length > 1 && !autoPartTerms.includes(word)) {
+      // If it's not a part number but also not a common auto part, it might be a product term
+      productTerms.push(word);
+    } else if (autoPartTerms.includes(word)) {
+      // It's a known auto part term
       productTerms.push(word);
     }
   });
 
-  // If no specific product terms found but we have vehicle info, 
-  // this might be a general vehicle search
-  if (productTerms.length === 0 && (vehicleInfo.year || vehicleInfo.make || vehicleInfo.model)) {
-    productTerms.push('parts', 'accessories');
+  // Determine if we have vehicle info
+  const hasVehicleInfo = !!(vehicleInfo.year || vehicleInfo.make || vehicleInfo.model);
+
+  // Determine search type
+  let searchType = 'general';
+  if (partNumbers.length > 0) {
+    searchType = 'part_number';
+  } else if (hasVehicleInfo && productTerms.length > 0) {
+    searchType = 'vehicle_with_product';
+  } else if (hasVehicleInfo) {
+    searchType = 'vehicle_compatibility';
+  } else if (productTerms.length > 0) {
+    searchType = 'product_name';
   }
 
-  return { 
-    vehicleInfo, 
-    productTerms, 
+  return {
+    vehicleInfo,
+    productTerms,
+    partNumbers,
     originalQuery,
-    hasVehicleInfo: !!(vehicleInfo.year || vehicleInfo.make || vehicleInfo.model)
+    hasVehicleInfo,
+    hasPartNumber: partNumbers.length > 0,
+    searchType
   };
 };
 
@@ -143,7 +201,7 @@ const getVehicleCompatibility = (productName, productDescription) => {
   const name = (productName || '').toLowerCase();
   const desc = (productDescription || '').toLowerCase();
   const text = `${name} ${desc}`;
-  
+
   const compatibility = [];
   
   // Extract years from product info
@@ -190,7 +248,7 @@ const getVehicleCompatibility = (productName, productDescription) => {
     'nissan': ['altima', 'sentra', 'rogue', 'pathfinder', 'frontier', 'titan', 'versa', 'murano', 'armada', 'maxima'],
     'bmw': ['3-series', '5-series', '7-series', 'x1', 'x3', 'x5', 'x7', 'z4', 'i3', 'i8'],
     'mercedes-benz': ['c-class', 'e-class', 's-class', 'glc', 'gle', 'gls', 'a-class', 'cla', 'gla'],
-    'audi': ['a3', 'a4', 'a6', 'a8', 'q3', 'q5', 'q7', 'q8', 'tt', 'r8'],
+    'audi': ['a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'q3', 'q5', 'q7', 'q8', 'tt', 'r8', 'rs3', 'rs4', 'rs5', 'rs6', 'rs7', 's3', 's4', 's5', 's6', 's7', 's8'],
     'volkswagen': ['jetta', 'passat', 'golf', 'tiguan', 'atlas', 'beetle', 'arteon'],
     'hyundai': ['elantra', 'sonata', 'tucson', 'santa fe', 'accent', 'veloster', 'genesis'],
     'kia': ['optima', 'forte', 'soul', 'sportage', 'sorento', 'rio', 'stinger', 'telluride']
@@ -259,8 +317,118 @@ const getVehicleCompatibility = (productName, productDescription) => {
       });
     });
   }
-  
+
+  // If still no compatibility found, generate targeted vehicle compatibility for common parts
+  if (compatibility.length === 0) {
+    // Check if it's a common part that would have specific vehicle compatibility
+    const commonParts = [
+      // Filters - generally have specific vehicle applications
+      'oil filter', 'air filter', 'cabin filter', 'fuel filter', 'filter',
+      // Brakes - vehicle-specific
+      'brake pad', 'brake disc', 'brake rotor', 'brake', 'pad', 'rotor',
+      // Engine - model-specific
+      'spark plug', 'ignition coil', 'alternator', 'plug',
+      'starter', 'radiator', 'thermostat', 'water pump',
+      // Belts - vehicle-specific
+      'timing belt', 'serpentine belt', 'drive belt', 'belt',
+      // Suspension - vehicle-specific
+      'shock absorber', 'strut', 'tie rod', 'ball joint', 'shock',
+      'cv joint', 'wheel bearing', 'hub assembly', 'bearing',
+      // Lighting - often vehicle-specific
+      'headlight', 'taillight', 'turn signal', 'fog light', 'light', 'bulb'
+    ];
+
+    const isCommonPart = commonParts.some(part => text.includes(part));
+
+    if (isCommonPart) {
+      // Instead of generating universal compatibility, try to extract any specific vehicle info
+      // that might be mentioned in the product name or description
+      
+      // Look for specific model mentions in the text
+      const specificModels = {
+        'toyota': ['corolla', 'camry', 'prius', 'rav4', 'highlander', 'sienna', 'tacoma', 'tundra'],
+        'honda': ['civic', 'accord', 'cr-v', 'pilot', 'odyssey', 'ridgeline', 'fit', 'hr-v'],
+        'ford': ['f-150', 'f-250', 'f-350', 'mustang', 'explorer', 'escape', 'fusion', 'focus'],
+        'chevrolet': ['silverado', 'tahoe', 'suburban', 'equinox', 'malibu', 'cruze', 'camaro', 'corvette'],
+        'nissan': ['altima', 'sentra', 'rogue', 'pathfinder', 'murano', 'frontier', 'titan', 'versa']
+      };
+
+      // Try to find specific vehicle mentions
+      let foundSpecific = false;
+      for (const [make, models] of Object.entries(specificModels)) {
+        for (const model of models) {
+          if (text.includes(model)) {
+            // Found specific model mention
+            foundSpecific = true;
+            
+            // Add compatibility for years where this model was popular
+            const modelYears = getModelYears(make, model);
+            modelYears.forEach(year => {
+              compatibility.push({
+                year: year,
+                make: make,
+                model: model,
+                matchType: 'specific'
+              });
+            });
+            break;
+          }
+        }
+        if (foundSpecific) break;
+      }
+
+      // If no specific vehicle found, only add generic compatibility for very universal items
+      if (!foundSpecific) {
+        const trulyUniversalParts = ['battery', 'oil', 'coolant', 'brake fluid', 'fuse', 'relay'];
+        const isTrulyUniversal = trulyUniversalParts.some(part => text.includes(part));
+        
+        if (isTrulyUniversal) {
+          // Add limited, recent-year compatibility for popular makes only
+          const popularMakes = ['toyota', 'honda', 'ford', 'chevrolet', 'nissan'];
+          const recentYears = ['2020', '2021', '2022', '2023', '2024'];
+
+          popularMakes.forEach(make => {
+            recentYears.slice(0, 2).forEach(year => { // Only add 2 recent years
+              compatibility.push({
+                year: year,
+                make: make,
+                model: null, // Will be filtered out by the UI unless it has specific model info
+                matchType: 'make_year'
+              });
+            });
+          });
+        }
+      }
+    }
+  }
+
   return compatibility;
+};
+
+// Helper function to get typical model years for specific vehicles
+const getModelYears = (make, model) => {
+  // Return years when specific models were commonly available
+  const currentYear = new Date().getFullYear();
+  const modelGenerations = {
+    'toyota': {
+      'corolla': ['2020', '2021', '2022', '2023', '2024'],
+      'camry': ['2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+      'rav4': ['2019', '2020', '2021', '2022', '2023', '2024'],
+      'prius': ['2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024']
+    },
+    'honda': {
+      'civic': ['2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+      'accord': ['2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+      'cr-v': ['2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024']
+    },
+    'ford': {
+      'f-150': ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+      'mustang': ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+      'explorer': ['2020', '2021', '2022', '2023', '2024']
+    }
+  };
+
+  return modelGenerations[make]?.[model] || [String(currentYear - 2), String(currentYear - 1), String(currentYear)];
 };
 
 // Enhanced search scoring with vehicle compatibility
@@ -393,116 +561,152 @@ const ProductService = {
         // Vehicle compatibility filter (from VehicleSearchDropdown)
         if (filters.vehicle) {
           const vehicle = filters.vehicle;
-          // console.log('🚗 Filtering by vehicle:', vehicle); // Disabled for performance
+          console.log('🚗 Filtering by vehicle:', vehicle);
 
           const vehicleConditions = [];
 
-          // Create more precise vehicle matching to avoid wrong results
+          // Simplified vehicle matching using ILIKE to avoid regex syntax errors
           if (vehicle.make) {
             const makeLower = vehicle.make.toLowerCase();
             const makeCapitalized = vehicle.make.charAt(0).toUpperCase() + vehicle.make.slice(1).toLowerCase();
 
-            // Use word boundaries to avoid partial matches (e.g., avoid "Honda" matching "Hyundai")
-            vehicleConditions.push(`name ~* '\\y${makeLower}\\y'`);
-            vehicleConditions.push(`name ~* '\\y${makeCapitalized}\\y'`);
-            vehicleConditions.push(`description ~* '\\y${makeLower}\\y'`);
-            vehicleConditions.push(`description ~* '\\y${makeCapitalized}\\y'`);
-            vehicleConditions.push(`sku ILIKE '%${makeLower}%'`);
-            vehicleConditions.push(`sku ILIKE '%${makeCapitalized}%'`);
+            // Use simple ILIKE patterns instead of complex regex
+            vehicleConditions.push(`name ILIKE '%${makeLower}%'`);
+            vehicleConditions.push(`name ILIKE '%${makeCapitalized}%'`);
+            vehicleConditions.push(`description ILIKE '%${makeLower}%'`);
+            vehicleConditions.push(`description ILIKE '%${makeCapitalized}%'`);
+            vehicleConditions.push(`compatibility::text ILIKE '%${makeLower}%'`);
+            vehicleConditions.push(`compatibility::text ILIKE '%${makeCapitalized}%'`);
           }
 
           if (vehicle.model) {
             const modelLower = vehicle.model.toLowerCase();
             const modelCapitalized = vehicle.model.charAt(0).toUpperCase() + vehicle.model.slice(1).toLowerCase();
 
-            vehicleConditions.push(`name ~* '\\y${modelLower}\\y'`);
-            vehicleConditions.push(`name ~* '\\y${modelCapitalized}\\y'`);
-            vehicleConditions.push(`description ~* '\\y${modelLower}\\y'`);
-            vehicleConditions.push(`description ~* '\\y${modelCapitalized}\\y'`);
-            vehicleConditions.push(`sku ILIKE '%${modelLower}%'`);
-            vehicleConditions.push(`sku ILIKE '%${modelCapitalized}%'`);
+            vehicleConditions.push(`name ILIKE '%${modelLower}%'`);
+            vehicleConditions.push(`name ILIKE '%${modelCapitalized}%'`);
+            vehicleConditions.push(`description ILIKE '%${modelLower}%'`);
+            vehicleConditions.push(`description ILIKE '%${modelCapitalized}%'`);
+            vehicleConditions.push(`compatibility::text ILIKE '%${modelLower}%'`);
+            vehicleConditions.push(`compatibility::text ILIKE '%${modelCapitalized}%'`);
+            
+            // Handle common model variations
+            if (modelLower === 'rav4') {
+              vehicleConditions.push(`name ILIKE '%rav-4%'`);
+              vehicleConditions.push(`description ILIKE '%rav-4%'`);
+              vehicleConditions.push(`compatibility::text ILIKE '%rav-4%'`);
+            } else if (modelLower === 'rav-4') {
+              vehicleConditions.push(`name ILIKE '%rav4%'`);
+              vehicleConditions.push(`description ILIKE '%rav4%'`);
+              vehicleConditions.push(`compatibility::text ILIKE '%rav4%'`);
+            }
           }
 
           if (vehicle.year) {
             vehicleConditions.push(`name ILIKE '%${vehicle.year}%'`);
             vehicleConditions.push(`description ILIKE '%${vehicle.year}%'`);
-            vehicleConditions.push(`sku ILIKE '%${vehicle.year}%'`);
-          }
-
-          // Search in compatibility JSONB column if it exists
-          if (vehicle.make) {
-            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.make.toLowerCase()}\\y'`);
-            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.make.charAt(0).toUpperCase() + vehicle.make.slice(1).toLowerCase()}\\y'`);
-          }
-          if (vehicle.model) {
-            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.model.toLowerCase()}\\y'`);
-            vehicleConditions.push(`compatibility::text ~* '\\y${vehicle.model.charAt(0).toUpperCase() + vehicle.model.slice(1).toLowerCase()}\\y'`);
-          }
-          if (vehicle.year) {
             vehicleConditions.push(`compatibility::text ILIKE '%${vehicle.year}%'`);
           }
 
           if (vehicleConditions.length > 0) {
             q = q.or(vehicleConditions.join(','));
-            // console.log('🔍 Vehicle filter conditions applied:', vehicleConditions.length, 'conditions for', vehicle); // Disabled for performance
+            console.log('🔍 Vehicle filter conditions applied:', vehicleConditions.length, 'conditions for', vehicle);
           }
         }
 
-        // Enhanced search functionality with vehicle compatibility
+        // Enhanced multi-field search functionality with vehicle compatibility priority
         if (filters.search) {
           const parsed = parseSearchQuery(filters.search);
           const searchConditions = [];
 
-          // console.log('🔍 Parsed search:', parsed); // Disabled for performance
+          console.log('🔍 Parsed search:', parsed); // Enable for debugging vehicle searches
 
-          // If we have vehicle information, use compatibility search
+          // Priority 1: Part number search (highest priority for exact matches)
+          if (parsed.hasPartNumber) {
+            parsed.partNumbers.forEach(partNum => {
+              // Exact match gets highest priority
+              searchConditions.push(`part_number.ilike.${partNum}`);
+              searchConditions.push(`sku.ilike.${partNum}`);
+              // Partial matches for flexibility
+              searchConditions.push(`part_number.ilike.%${partNum}%`);
+              searchConditions.push(`sku.ilike.%${partNum}%`);
+              // Also search in name and description for part numbers
+              searchConditions.push(`name.ilike.%${partNum}%`);
+              searchConditions.push(`description.ilike.%${partNum}%`);
+            });
+          }
+
+          // Priority 2: Enhanced Vehicle compatibility search (MOST IMPORTANT)
           if (parsed.hasVehicleInfo) {
             const { vehicleInfo } = parsed;
-            
-            // Search in compatibility JSONB column
+
+            // Use correct PostgREST format - separate JSONB compatibility searches
             if (vehicleInfo.year) {
-              searchConditions.push(`compatibility->>'year'.ilike.%${vehicleInfo.year}%`);
-            }
-            if (vehicleInfo.make) {
-              searchConditions.push(`compatibility->>'make'.ilike.%${vehicleInfo.make}%`);
-            }
-            if (vehicleInfo.model) {
-              searchConditions.push(`compatibility->>'model'.ilike.%${vehicleInfo.model}%`);
-            }
-            
-            // Also search in product fields
-            if (vehicleInfo.year) {
+              // For JSONB compatibility field, use cs (contains) operator AND text search as fallback
+              searchConditions.push(`compatibility.cs.{"year":"${vehicleInfo.year}"}`);
+              searchConditions.push(`compatibility.cs.{"year":${vehicleInfo.year}}`); // Also try numeric
               searchConditions.push(`name.ilike.%${vehicleInfo.year}%`);
               searchConditions.push(`description.ilike.%${vehicleInfo.year}%`);
-              searchConditions.push(`part_number.ilike.%${vehicleInfo.year}%`);
             }
             
             if (vehicleInfo.make) {
-              searchConditions.push(`name.ilike.%${vehicleInfo.make}%`);
-              searchConditions.push(`description.ilike.%${vehicleInfo.make}%`);
-              searchConditions.push(`sku.ilike.%${vehicleInfo.make}%`);
+              const makeLower = vehicleInfo.make.toLowerCase();
+              const makeCapitalized = vehicleInfo.make.charAt(0).toUpperCase() + vehicleInfo.make.slice(1);
+              
+              // Use JSONB contains operator for compatibility, ilike for text fields
+              searchConditions.push(`compatibility.cs.{"make":"${makeLower}"}`);
+              searchConditions.push(`compatibility.cs.{"make":"${makeCapitalized}"}`);
+              searchConditions.push(`name.ilike.%${makeLower}%`);
+              searchConditions.push(`name.ilike.%${makeCapitalized}%`);
+              searchConditions.push(`description.ilike.%${makeLower}%`);
+              searchConditions.push(`description.ilike.%${makeCapitalized}%`);
             }
             
             if (vehicleInfo.model) {
-              searchConditions.push(`name.ilike.%${vehicleInfo.model}%`);
-              searchConditions.push(`description.ilike.%${vehicleInfo.model}%`);
-              searchConditions.push(`sku.ilike.%${vehicleInfo.model}%`);
-            }
-
-            // Search for product terms if specified
-            if (parsed.productTerms.length > 0) {
-              parsed.productTerms.forEach(term => {
-                if (term !== 'parts' && term !== 'accessories') {
-                  searchConditions.push(`name.ilike.%${term}%`);
-                  searchConditions.push(`description.ilike.%${term}%`);
-                  searchConditions.push(`short_description.ilike.%${term}%`);
-                  searchConditions.push(`sku.ilike.%${term}%`);
-                  searchConditions.push(`part_number.ilike.%${term}%`);
-                }
+              const modelLower = vehicleInfo.model.toLowerCase();
+              const modelCapitalized = vehicleInfo.model.charAt(0).toUpperCase() + vehicleInfo.model.slice(1);
+              
+              // Handle common model variations more efficiently
+              const modelVariations = [modelLower, modelCapitalized];
+              
+              // Add hyphenated/non-hyphenated variations for common models
+              if (modelLower === 'rav4') {
+                modelVariations.push('rav-4');
+              } else if (modelLower === 'rav-4') {
+                modelVariations.push('rav4');
+              } else if (modelLower === 'crv') {
+                modelVariations.push('cr-v');
+              } else if (modelLower === 'cr-v') {
+                modelVariations.push('crv');
+              }
+              
+              // Use JSONB contains for compatibility, ilike for text fields
+              modelVariations.slice(0, 3).forEach(variation => { // Limit to 3 to avoid too many conditions
+                searchConditions.push(`compatibility.cs.{"model":"${variation}"}`);
+                searchConditions.push(`name.ilike.%${variation}%`);
+                searchConditions.push(`description.ilike.%${variation}%`);
               });
             }
-          } else {
-            // No vehicle info, do comprehensive text search
+          }
+
+          // Priority 3: Product name/term search
+          if (parsed.productTerms.length > 0) {
+            parsed.productTerms.forEach(term => {
+              if (term !== 'parts' && term !== 'accessories') {
+                searchConditions.push(`name.ilike.%${term}%`);
+                searchConditions.push(`description.ilike.%${term}%`);
+                searchConditions.push(`short_description.ilike.%${term}%`);
+                // Don't duplicate part_number search if we already have part numbers
+                if (!parsed.hasPartNumber) {
+                  searchConditions.push(`part_number.ilike.%${term}%`);
+                  searchConditions.push(`sku.ilike.%${term}%`);
+                }
+              }
+            });
+          }
+
+          // Fallback: If no specific parsing worked, do comprehensive search
+          if (searchConditions.length === 0) {
             const searchTerm = filters.search.toLowerCase();
             searchConditions.push(`name.ilike.%${searchTerm}%`);
             searchConditions.push(`description.ilike.%${searchTerm}%`);
@@ -687,9 +891,9 @@ const ProductService = {
           vehicleCompatibility = getVehicleCompatibility(product.name, product.description);
         }
         
-        // Calculate relevance score for search results
+        // Calculate enhanced relevance score for multi-field search results
         let relevanceScore = 1.0;
-        
+
         if (filters.search) {
           const parsed = parseSearchQuery(filters.search);
           const productName = (product.name || '').toLowerCase();
@@ -697,11 +901,28 @@ const ProductService = {
           const productShortDesc = (product.short_description || '').toLowerCase();
           const productSku = (product.sku || '').toLowerCase();
           const productPartNumber = (product.part_number || '').toLowerCase();
-          
-          // Text-based relevance scoring across multiple fields
+
+          // Priority 1: Part number scoring (highest relevance)
+          if (parsed.hasPartNumber) {
+            parsed.partNumbers.forEach(partNum => {
+              const partNumLower = partNum.toLowerCase();
+
+              // Exact matches get maximum score
+              if (productPartNumber === partNumLower) relevanceScore += 15.0;
+              else if (productSku === partNumLower) relevanceScore += 12.0;
+
+              // Partial matches get good scores
+              else if (productPartNumber.includes(partNumLower)) relevanceScore += 8.0;
+              else if (productSku.includes(partNumLower)) relevanceScore += 6.0;
+              else if (productName.includes(partNumLower)) relevanceScore += 4.0;
+              else if (productDesc.includes(partNumLower)) relevanceScore += 2.0;
+            });
+          }
+
+          // Priority 2: Vehicle compatibility scoring
           if (parsed.hasVehicleInfo) {
             const { vehicleInfo } = parsed;
-            
+
             // Year matches - check multiple fields
             if (vehicleInfo.year) {
               if (productName.includes(vehicleInfo.year)) relevanceScore += 3.0;
@@ -710,7 +931,7 @@ const ProductService = {
               if (productSku.includes(vehicleInfo.year)) relevanceScore += 2.0;
               if (productPartNumber.includes(vehicleInfo.year)) relevanceScore += 2.5;
             }
-            
+
             // Make matches
             if (vehicleInfo.make) {
               if (productName.includes(vehicleInfo.make)) relevanceScore += 3.0;
@@ -718,7 +939,7 @@ const ProductService = {
               if (productShortDesc.includes(vehicleInfo.make)) relevanceScore += 2.5;
               if (productSku.includes(vehicleInfo.make)) relevanceScore += 2.0;
             }
-            
+
             // Model matches
             if (vehicleInfo.model) {
               if (productName.includes(vehicleInfo.model)) relevanceScore += 3.0;
@@ -726,8 +947,17 @@ const ProductService = {
               if (productShortDesc.includes(vehicleInfo.model)) relevanceScore += 2.5;
               if (productSku.includes(vehicleInfo.model)) relevanceScore += 2.0;
             }
-            
-            // Product term matches
+
+            // Add vehicle compatibility scoring from database
+            const compatibilityScore = calculateVehicleCompatibilityScore(
+              { ...product, vehicleCompatibility },
+              filters.search
+            );
+            relevanceScore += compatibilityScore;
+          }
+
+          // Priority 3: Product name/term scoring
+          if (parsed.productTerms.length > 0) {
             parsed.productTerms.forEach(term => {
               if (term !== 'parts' && term !== 'accessories') {
                 if (productName.includes(term)) relevanceScore += 2.0;
@@ -738,20 +968,15 @@ const ProductService = {
               }
             });
           }
-          
-          // Add vehicle compatibility scoring
-          const compatibilityScore = calculateVehicleCompatibilityScore(
-            { ...product, vehicleCompatibility }, 
-            filters.search
-          );
-          relevanceScore += compatibilityScore;
-          
-          // Boost score for exact SKU or part number matches
-          if (filters.search.toLowerCase() === productSku) {
-            relevanceScore += 10.0;
-          }
-          if (filters.search.toLowerCase() === productPartNumber) {
-            relevanceScore += 8.0;
+
+          // Fallback: General text matching if no specific parsing
+          if (!parsed.hasPartNumber && !parsed.hasVehicleInfo && parsed.productTerms.length === 0) {
+            const searchTerm = filters.search.toLowerCase();
+            if (productName.includes(searchTerm)) relevanceScore += 2.0;
+            if (productDesc.includes(searchTerm)) relevanceScore += 1.0;
+            if (productShortDesc.includes(searchTerm)) relevanceScore += 1.5;
+            if (productSku.includes(searchTerm)) relevanceScore += 1.5;
+            if (productPartNumber.includes(searchTerm)) relevanceScore += 1.5;
           }
         }
         
@@ -1246,45 +1471,57 @@ const ProductService = {
       if (error) throw error;
       if (!product) return { success: false, error: 'Product not found' };
 
-      // Fetch supplier/dealer information separately
-      let supplierInfo = null;
-      if (product.supplier_id) {
+      // Fetch dealer information from profiles table using dealer_id
+      let dealerInfo = null;
+      if (product.dealer_id) {
         try {
-          const { data: supplier, error: supplierError } = await supabase
-            .from('suppliers')
+          const { data: dealer, error: dealerError } = await supabase
+            .from('profiles')
             .select(`
               id,
-              business_name,
               company_name,
               full_name,
-              name,
+              email,
               city,
               state,
               verification_status
             `)
-            .eq('id', product.supplier_id)
+            .eq('id', product.dealer_id)
             .single();
 
-          if (!supplierError && supplier) {
-            supplierInfo = supplier;
+          if (!dealerError && dealer) {
+            dealerInfo = dealer;
           }
-        } catch (supplierErr) {
-          console.log('Could not fetch supplier info:', supplierErr);
+        } catch (dealerErr) {
+          console.log('Could not fetch dealer info from profiles:', dealerErr);
         }
       }
 
-      // Ensure compatibility data exists
+      // Ensure compatibility data exists - always regenerate for better accuracy
       let vehicleCompatibility = [];
+
+      // Always generate fresh compatibility data
+      vehicleCompatibility = getVehicleCompatibility(product.name, product.description);
+
+      // If we have existing compatibility data, merge it with generated data
       if (product.compatibility) {
-        vehicleCompatibility = Array.isArray(product.compatibility) 
-          ? product.compatibility 
+        const existingCompatibility = Array.isArray(product.compatibility)
+          ? product.compatibility
           : [product.compatibility];
-      } else {
-        // Generate and save compatibility data
-        vehicleCompatibility = getVehicleCompatibility(product.name, product.description);
-        if (vehicleCompatibility.length > 0) {
-          await ProductService.updateProductCompatibility(productId, vehicleCompatibility);
-        }
+
+        // Combine existing and generated data, removing duplicates
+        const combined = [...existingCompatibility, ...vehicleCompatibility];
+        const uniqueCompatibility = combined.filter((item, index, self) =>
+          index === self.findIndex(t =>
+            t.year === item.year && t.make === item.make && t.model === item.model
+          )
+        );
+        vehicleCompatibility = uniqueCompatibility;
+      }
+
+      // Save updated compatibility data if we have any
+      if (vehicleCompatibility.length > 0) {
+        await ProductService.updateProductCompatibility(productId, vehicleCompatibility);
       }
 
       const transformedProduct = {
@@ -1307,7 +1544,7 @@ const ProductService = {
         category: product.categories,
         subcategory: product.subcategories,
         brand: product.brands,
-        dealer: supplierInfo,
+        dealer: dealerInfo,
         vehicleCompatibility,
         compatibility: vehicleCompatibility,
         stock_quantity: product.stock_quantity,

@@ -281,7 +281,7 @@ const ProductModal = ({
                       </div>
                       <span className="text-sm text-blue-600 font-medium">
                         Sold by: {product.dealer ?
-                          (product.dealer.business_name || product.dealer.company_name || product.dealer.name || 'Verified Dealer')
+                          (product.dealer.company_name || product.dealer.business_name || product.dealer.name || 'Verified Dealer')
                           : 'Marketplace Seller'
                         }
                       </span>
@@ -466,7 +466,7 @@ const ProductModal = ({
                         <div className="flex items-center justify-between">
                           <div>
                             <h4 className="font-medium text-neutral-900">
-                              {product.dealer.business_name || product.dealer.name}
+                              {product.dealer.company_name || product.dealer.business_name || product.dealer.name}
                             </h4>
                             {product.dealer.city && product.dealer.state && (
                               <p className="text-sm text-neutral-600">

@@ -212,7 +212,7 @@ const SearchPage = () => {
                     'brake pads',
                     'oil filter',
                     'air filter', 
-                    'spark plugs',
+                  'spark plugs',
                     'battery'
                   ].map(term => (
                     <button

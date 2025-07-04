@@ -168,50 +168,49 @@ const ShopPage = () => {
       if (response.success) {
         const products = response.products || [];
 
-        // Fetch supplier information for all products
+        // Fetch dealer information from profiles table for all products
         if (products.length > 0) {
-          const supplierIds = [...new Set(products.map(p => p.supplier_id).filter(Boolean))];
-          const suppliersData = {};
+          const dealerIds = [...new Set(products.map(p => p.dealer_id).filter(Boolean))];
+          const dealersData = {};
 
-          // Fetch supplier details for each unique supplier
-          await Promise.all(supplierIds.map(async (supplierId) => {
+          // Fetch dealer details from profiles table for each unique dealer
+          await Promise.all(dealerIds.map(async (dealerId) => {
             try {
-              // Query suppliers table directly
-              const { data: supplier, error } = await supabase
-                .from('suppliers')
+              // Query profiles table directly for dealer information
+              const { data: dealer, error } = await supabase
+                .from('profiles')
                 .select(`
                   id,
-                  business_name,
                   company_name,
                   full_name,
-                  name,
+                  email,
                   city,
                   state,
                   verification_status
                 `)
-                .eq('id', supplierId)
+                .eq('id', dealerId)
                 .single();
 
-              if (!error && supplier) {
-                suppliersData[supplierId] = supplier;
+              if (!error && dealer) {
+                dealersData[dealerId] = dealer;
               }
             } catch (error) {
-              console.log(`Failed to fetch supplier ${supplierId}:`, error);
+              console.log(`Failed to fetch dealer ${dealerId} from profiles:`, error);
             }
           }));
 
-          // Enhance products with supplier information
+          // Enhance products with dealer information
           const enhancedProducts = products.map(product => {
-            const supplierInfo = suppliersData[product.supplier_id];
+            const dealerInfo = dealersData[product.dealer_id];
             return {
               ...product,
-              dealer: supplierInfo ? {
-                id: supplierInfo.id,
-                business_name: supplierInfo.business_name,
-                company_name: supplierInfo.company_name,
-                name: supplierInfo.full_name || supplierInfo.name,
-                location: supplierInfo.city && supplierInfo.state ? `${supplierInfo.city}, ${supplierInfo.state}` : 'Location not specified',
-                verified: supplierInfo.verification_status === 'verified'
+              dealer: dealerInfo ? {
+                id: dealerInfo.id,
+                company_name: dealerInfo.company_name,
+                business_name: dealerInfo.company_name, // Use company_name as business_name
+                name: dealerInfo.full_name,
+                location: dealerInfo.city && dealerInfo.state ? `${dealerInfo.city}, ${dealerInfo.state}` : 'Location not specified',
+                verified: dealerInfo.verification_status === 'verified'
               } : null
             };
           });
@@ -953,7 +952,6 @@ const ShopPage = () => {
                         <ProductCard
                           product={product}
                           layout={viewMode}
-                          showQuickView={true}
                           showBestSeller={product.is_bestseller}
                           showDiscount={product.discount_price > 0}
                           className="h-full border-0 shadow-none rounded-lg"

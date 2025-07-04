@@ -127,10 +127,10 @@ const ProductCard = memo(({
               </Link>
 
               {/* Dealer Information */}
-              {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+              {product.dealer && (product.dealer.company_name || product.dealer.business_name || product.dealer.name) && (
                 <p className="text-xs text-gray-600 mb-2">
-                  Sold by <span className="font-medium text-gray-800">
-                    {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+                  Sold by <span className="font-medium text-blue-600">
+                    {product.dealer.company_name || product.dealer.business_name || product.dealer.name}
                   </span>
                 </p>
               )}
@@ -272,10 +272,10 @@ const ProductCard = memo(({
           </Link>
 
           {/* Dealer Information */}
-          {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+          {product.dealer && (product.dealer.company_name || product.dealer.business_name || product.dealer.name) && (
             <p className="text-xs text-gray-600 mb-2">
-              Sold by <span className="font-medium text-gray-800">
-                {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+              Sold by <span className="font-medium text-blue-600">
+                {product.dealer.company_name || product.dealer.business_name || product.dealer.name}
               </span>
             </p>
           )}

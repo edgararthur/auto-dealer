@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiStar, FiMapPin, FiTruck, FiShield, FiX, FiCheck, FiChevronDown } from 'react-icons/fi';
 import PropTypes from 'prop-types';
+import { formatPrice } from '../../utils/priceFormatter';
 
 /**
  * PriceComparison Component - Shows multiple dealers selling the same product
@@ -230,23 +231,23 @@ const PriceComparison = ({
                   <div className="text-right">
                     <div className="mb-2">
                       <span className="text-2xl font-bold text-gray-900">
-                        ${dealerPrice.price.toFixed(2)}
+                        {formatPrice(dealerPrice.price)}
                       </span>
                       {dealerPrice.originalPrice && dealerPrice.originalPrice > dealerPrice.price && (
                         <div className="text-sm">
                           <span className="text-gray-500 line-through">
-                            ${dealerPrice.originalPrice.toFixed(2)}
+                            {formatPrice(dealerPrice.originalPrice)}
                           </span>
                           <span className="text-green-600 ml-1">
-                            Save ${(dealerPrice.originalPrice - dealerPrice.price).toFixed(2)}
+                            Save {formatPrice(dealerPrice.originalPrice - dealerPrice.price)}
                           </span>
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="text-xs text-gray-500 mb-3">
                       {dealerPrice.shipping?.cost ? (
-                        `+ $${dealerPrice.shipping.cost.toFixed(2)} shipping`
+                        `+ ${formatPrice(dealerPrice.shipping.cost)} shipping`
                       ) : (
                         'Free shipping'
                       )}

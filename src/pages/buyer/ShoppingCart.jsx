@@ -19,13 +19,12 @@ const ShoppingCart = () => {
   const { 
     items: cartItems, 
     loading, 
-    updateCartItem, 
-    removeCartItem, 
+    updateQuantity, 
+    removeFromCart, 
     savedCarts,
     saveCartForLater,
     loadSavedCart,
-    deleteSavedCart,
-    getCartTotalsByDealer
+    deleteSavedCart
   } = useCart();
   
   const [promoCode, setPromoCode] = useState('');
@@ -66,12 +65,12 @@ const ShoppingCart = () => {
   
   // Handle quantity change
   const handleQuantityChange = (id, newQuantity) => {
-    updateCartItem(id, newQuantity);
+    updateQuantity(id, newQuantity);
   };
   
   // Handle item removal
   const handleRemoveItem = (id) => {
-    removeCartItem(id);
+    removeFromCart(id);
   };
 
   // Handle checkout
@@ -161,7 +160,7 @@ const ShoppingCart = () => {
             />
             
             {/* Saved Carts */}
-            {!isCartEmpty && savedCarts.length === 0 && (
+            {!isCartEmpty && (!savedCarts || savedCarts.length === 0) && (
               <div className="bg-white p-6 rounded-lg border border-neutral-200 shadow-sm">
                 <div className="flex items-center text-neutral-600 mb-2">
                   <FiClock className="mr-2" />
@@ -181,7 +180,7 @@ const ShoppingCart = () => {
             )}
             
             {/* Saved Carts Component */}
-            {savedCarts.length > 0 && (
+            {savedCarts && savedCarts.length > 0 && (
               <SavedCarts
                 savedCarts={savedCarts}
                 onLoadCart={loadSavedCart}

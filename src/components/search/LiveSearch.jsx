@@ -134,11 +134,12 @@ const LiveSearch = ({
     setShowHistory(false);
     setError(null);
     setTotalCount(0);
-    
+    setIsOpen(false); // Close dropdown for better UX
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -197,6 +198,23 @@ const LiveSearch = ({
     if (onProductSelect) {
       onProductSelect(productId);
     }
+
+    // Close dropdown and clear state for better UX
+    setIsOpen(false);
+    setProducts([]);
+    setShowHistory(false);
+  };
+
+  // Handle search submission (Enter key)
+  const handleSearchSubmit = () => {
+    if (onSearch && query.trim()) {
+      onSearch(query.trim());
+    }
+
+    // Close dropdown and clear state
+    setIsOpen(false);
+    setProducts([]);
+    setShowHistory(false);
   };
 
   // Focus management
@@ -205,8 +223,12 @@ const LiveSearch = ({
   };
 
   const handleBlur = () => {
-    // Delay hiding history to allow clicks
-    setTimeout(() => setShowHistory(false), 200);
+    // Delay hiding to allow clicks on dropdown items
+    setTimeout(() => {
+      setShowHistory(false);
+      setIsOpen(false);
+      setProducts([]);
+    }, 200);
   };
 
   // Cleanup on unmount
@@ -234,6 +256,15 @@ const LiveSearch = ({
             onChange={handleInputChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearchSubmit();
+              } else if (e.key === 'Escape') {
+                setIsOpen(false);
+                setProducts([]);
+                setShowHistory(false);
+              }
+            }}
             placeholder={placeholder}
             className="w-full pl-12 pr-12 py-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 shadow-sm"
           />
@@ -359,10 +390,10 @@ const LiveSearch = ({
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <ProductGrid 
+                <ProductGrid
                   products={products}
                   onProductClick={handleProductClick}
-                  showQuickActions={true}
+                  showQuickActions={false}
                 />
               </motion.div>
             )}

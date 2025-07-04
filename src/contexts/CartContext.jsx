@@ -11,6 +11,7 @@ export const CartProvider = ({ children }) => {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [savedCarts, setSavedCarts] = useState([]);
 
   // Group cart items by dealer for multi-tenant support
   const itemsByDealer = items.reduce((acc, item) => {
@@ -246,6 +247,89 @@ export const CartProvider = ({ children }) => {
     return total;
   };
 
+  // Saved cart functionality
+  const saveCartForLater = async (cartName) => {
+    try {
+      if (items.length === 0) {
+        return { success: false, error: 'Cart is empty' };
+      }
+
+      const savedCart = {
+        id: Date.now().toString(),
+        name: cartName || `Cart saved on ${new Date().toLocaleDateString()}`,
+        items: [...items],
+        totalItems: totalItems,
+        totalAmount: totalAmount,
+        savedAt: new Date().toISOString(),
+        userId: user?.id || 'guest'
+      };
+
+      // Save to localStorage for now
+      const existingSavedCarts = JSON.parse(localStorage.getItem('autora_saved_carts') || '[]');
+      const updatedSavedCarts = [...existingSavedCarts, savedCart];
+      localStorage.setItem('autora_saved_carts', JSON.stringify(updatedSavedCarts));
+      
+      setSavedCarts(updatedSavedCarts);
+      
+      // Clear current cart after saving
+      setItems([]);
+      
+      return { success: true, cart: savedCart };
+    } catch (error) {
+      console.error('Error saving cart:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const loadSavedCart = async (cartId) => {
+    try {
+      const existingSavedCarts = JSON.parse(localStorage.getItem('autora_saved_carts') || '[]');
+      const cartToLoad = existingSavedCarts.find(cart => cart.id === cartId);
+      
+      if (!cartToLoad) {
+        return { success: false, error: 'Saved cart not found' };
+      }
+
+      // Add saved cart items to current cart
+      setItems(cartToLoad.items);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error loading saved cart:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const deleteSavedCart = async (cartId) => {
+    try {
+      const existingSavedCarts = JSON.parse(localStorage.getItem('autora_saved_carts') || '[]');
+      const updatedSavedCarts = existingSavedCarts.filter(cart => cart.id !== cartId);
+      
+      localStorage.setItem('autora_saved_carts', JSON.stringify(updatedSavedCarts));
+      setSavedCarts(updatedSavedCarts);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting saved cart:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Load saved carts on mount
+  React.useEffect(() => {
+    const loadSavedCarts = () => {
+      try {
+        const existingSavedCarts = JSON.parse(localStorage.getItem('autora_saved_carts') || '[]');
+        setSavedCarts(existingSavedCarts);
+      } catch (error) {
+        console.error('Error loading saved carts:', error);
+        setSavedCarts([]);
+      }
+    };
+    
+    loadSavedCarts();
+  }, []);
+
   const value = {
     items,
     itemsByDealer,
@@ -253,6 +337,7 @@ export const CartProvider = ({ children }) => {
     totalAmount,
     totalDealers,
     loading,
+    savedCarts,
     addToCart,
     removeFromCart,
     updateQuantity,
@@ -262,7 +347,10 @@ export const CartProvider = ({ children }) => {
     isInCart,
     getDealerShippingCost,
     getTotalWithShipping,
-    loadCartFromDatabase
+    loadCartFromDatabase,
+    saveCartForLater,
+    loadSavedCart,
+    deleteSavedCart
   };
   
   return (

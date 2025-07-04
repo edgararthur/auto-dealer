@@ -333,7 +333,6 @@ const SubcategoryPage = () => {
                     tags: product.isNew ? ['NEW'] : []
                   }}
                   onAddToCart={handleAddToCart}
-                  showQuickActions={true}
                   layout={viewMode}
                 />
               ))}

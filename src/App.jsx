@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
@@ -10,6 +10,7 @@ import { MaintenanceRemindersProvider } from './contexts/MaintenanceRemindersCon
 import { ToastProvider } from './contexts/ToastContext';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/common';
+import { initializeCurrency } from './utils/priceFormatter';
 
 // Components - Keep critical components as direct imports for faster initial load
 import StoreHeader from './components/navigation/StoreHeader';
@@ -153,6 +154,11 @@ const ProtectedRoute = ({ children }) => {
 
 // Main application component
 const App = () => {
+  // Initialize currency system on app startup
+  useEffect(() => {
+    initializeCurrency();
+  }, []);
+
   // Performance tracking DISABLED to prevent reloads
   // React.useEffect(() => {
   //   // Track app initialization

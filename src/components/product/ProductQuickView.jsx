@@ -407,9 +407,9 @@ const ProductQuickView = ({
                         </div>
                         <span>({product.review_count || 0} reviews)</span>
                       </div>
-                      {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+                      {product.dealer && (product.dealer.company_name || product.dealer.business_name || product.dealer.name) && (
                         <span className="text-blue-600 font-medium">
-                          Sold by: {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+                          Sold by: {product.dealer.company_name || product.dealer.business_name || product.dealer.name}
                         </span>
                       )}
                     </div>
@@ -512,7 +512,7 @@ const ProductQuickView = ({
                             <span className="text-gray-600">Dealer:</span>
                             <span className="font-medium text-blue-600">
                               {product.dealer ?
-                                (product.dealer.business_name || product.dealer.company_name || product.dealer.name || 'Verified Dealer')
+                                (product.dealer.company_name || product.dealer.business_name || product.dealer.name || 'Verified Dealer')
                                 : 'Marketplace Seller'
                               }
                             </span>
@@ -633,7 +633,7 @@ const ProductQuickView = ({
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
                             <h4 className="font-medium text-gray-900">
-                              {product.dealer.business_name || product.dealer.name || 'Verified Dealer'}
+                              {product.dealer.company_name || product.dealer.business_name || product.dealer.name || 'Verified Dealer'}
                             </h4>
                             {product.dealer.verified && (
                               <div className="flex items-center space-x-1 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">

@@ -660,7 +660,6 @@ const EnhancedShopPage = () => {
                       <ProductCard
                         product={product}
                         layout={viewMode}
-                        showQuickView={true}
                         showBestSeller={product.is_bestseller}
                         showDiscount={product.discount_price > 0}
                         className="h-full border-0 shadow-none rounded-lg"
@@ -668,7 +667,7 @@ const EnhancedShopPage = () => {
                       />
 
                       {/* Quick Actions Overlay */}
-                      <div className="absolute inset-x-0 bottom-0 bg-white bg-opacity-95 backdrop-blur-sm p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200 rounded-b-lg">
+                      {/* <div className="absolute inset-x-0 bottom-0 bg-white bg-opacity-95 backdrop-blur-sm p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200 rounded-b-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <button
@@ -705,7 +704,7 @@ const EnhancedShopPage = () => {
                             </span>
                           </div>
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   ))}
                 </div>

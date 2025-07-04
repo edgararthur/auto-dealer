@@ -414,10 +414,10 @@ const ProductDetail = () => {
 
                   {/* Dealer & Brand */}
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mb-6">
-                    {product.dealer && (product.dealer.business_name || product.dealer.company_name || product.dealer.name) && (
+                    {product.dealer && (product.dealer.company_name || product.dealer.business_name || product.dealer.name) && (
                       <span>
                         Sold by: <span className="font-medium text-blue-600">
-                          {product.dealer.business_name || product.dealer.company_name || product.dealer.name}
+                          {product.dealer.company_name || product.dealer.business_name || product.dealer.name}
                         </span>
                       </span>
                     )}
@@ -642,8 +642,8 @@ const ProductDetail = () => {
             {activeTab === 'compatibility' && (
               <div>
                 <h3 className="text-2xl font-bold mb-6">Vehicle Compatibility</h3>
-                {product.compatibility ? (
-                  <VehicleCompatibility compatibility={product.compatibility} />
+                {(product.vehicleCompatibility && product.vehicleCompatibility.length > 0) || (product.compatibility && product.compatibility.length > 0) ? (
+                  <VehicleCompatibility compatibility={product.vehicleCompatibility || product.compatibility} />
                 ) : (
                   <div className="text-center py-12">
                     <FiInfo className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -667,7 +667,7 @@ const ProductDetail = () => {
                       <span className="font-semibold text-gray-900">Dealer:</span>
                       <span className="ml-3 text-blue-600 font-medium">
                         {product.dealer ?
-                          (product.dealer.business_name || product.dealer.company_name || product.dealer.name || 'Verified Dealer')
+                          (product.dealer.company_name || product.dealer.business_name || product.dealer.name || 'Verified Dealer')
                           : 'Marketplace Seller'
                         }
                       </span>
@@ -739,7 +739,6 @@ const ProductDetail = () => {
                 <ProductCard
                   key={relatedProduct.id}
                   product={relatedProduct}
-                  showQuickView={true}
                 />
               ))}
             </div>

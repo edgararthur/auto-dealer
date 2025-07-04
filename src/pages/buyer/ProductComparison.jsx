@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { FiX, FiStar, FiShoppingCart, FiTruck, FiShield, FiCheck } from 'react-icons/fi';
 import ProductService from '../../../shared/services/productService';
 import { useCart } from '../../contexts/CartContext';
+import { formatPrice } from '../../utils/priceFormatter';
 
 const ProductComparison = () => {
   const [searchParams] = useSearchParams();
@@ -157,11 +158,11 @@ const ProductComparison = () => {
                   {products.map((product) => (
                     <td key={product.id} className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        ${product.price?.toFixed(2) || 'N/A'}
+                        {product.price ? formatPrice(product.price) : 'N/A'}
                       </div>
                       {product.discount_price && (
                         <div className="text-sm text-gray-400 line-through">
-                          ${product.discount_price.toFixed(2)}
+                          {formatPrice(product.discount_price)}
                         </div>
                       )}
                     </td>

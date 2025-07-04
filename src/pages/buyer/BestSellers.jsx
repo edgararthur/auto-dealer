@@ -301,7 +301,6 @@ const BestSellers = () => {
                       tags: index < 10 ? ['BESTSELLER'] : []
                     }}
                     onAddToCart={handleAddToCart}
-                    showQuickActions={true}
                   />
                 </div>
               ))}

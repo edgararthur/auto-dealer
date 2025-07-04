@@ -4,6 +4,7 @@ import { FiClock, FiShoppingCart, FiArrowRight, FiTag, FiChevronRight, FiCalenda
 import Breadcrumb from '../../components/common/Breadcrumb';
 import ProductService from '../../../shared/services/productService';
 import { useCart } from '../../contexts/CartContext';
+import { formatPrice } from '../../utils/priceFormatter';
 
 // Format time for countdown display
 const formatTime = (seconds) => {
@@ -66,9 +67,9 @@ const DealCard = ({ deal, timeRemaining, onAddToCart }) => {
         
         <div className="flex items-center mb-4">
           <div className="flex items-baseline">
-            <span className="text-xl font-bold text-accent-600">${deal.price.toFixed(2)}</span>
+            <span className="text-xl font-bold text-accent-600">{formatPrice(deal.price)}</span>
             {deal.oldPrice && (
-              <span className="ml-2 text-sm text-neutral-500 line-through">${deal.oldPrice.toFixed(2)}</span>
+              <span className="ml-2 text-sm text-neutral-500 line-through">{formatPrice(deal.oldPrice)}</span>
             )}
           </div>
         </div>

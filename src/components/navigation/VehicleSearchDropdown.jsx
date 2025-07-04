@@ -86,7 +86,7 @@ const VehicleSearchDropdown = ({ className = '' }) => {
     return suggestions.slice(0, 6);
   }, []);
 
-  // Debounced search for products
+  // Enhanced search with automatic vehicle detection
   const debouncedSearch = useCallback(async (searchQuery, vehicle = selectedVehicle) => {
     if (!searchQuery.trim() && !vehicle) {
       setProducts([]);
@@ -103,24 +103,33 @@ const VehicleSearchDropdown = ({ className = '' }) => {
     setLoading(true);
 
     try {
-      // Build search parameters
+      // Build search parameters - let ProductService handle vehicle detection from search query
       const searchParams = {
         limit: 12, // Show more products in dropdown
         sortBy: 'relevance'
       };
 
-      if (searchQuery.trim()) {
-        searchParams.search = searchQuery;
+      // Build combined search query that includes vehicle information
+      let combinedQuery = searchQuery.trim();
+      
+      // If a vehicle is explicitly selected, prepend it to the search query
+      // This ensures ProductService's parseSearchQuery can detect it properly
+      if (vehicle && (vehicle.year || vehicle.make || vehicle.model)) {
+        const vehicleParts = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean);
+        const vehicleString = vehicleParts.join(' ');
+        
+        // Only prepend if the search query doesn't already contain the vehicle info
+        if (!combinedQuery.toLowerCase().includes(vehicleString.toLowerCase())) {
+          combinedQuery = `${vehicleString} ${combinedQuery}`.trim();
+        }
       }
 
-      // Add vehicle compatibility filter if vehicle is selected
-      if (vehicle) {
-        searchParams.vehicle = {
-          year: vehicle.year,
-          make: vehicle.make,
-          model: vehicle.model
-        };
+      // Send the combined query to ProductService - it will handle all vehicle compatibility logic
+      if (combinedQuery) {
+        searchParams.search = combinedQuery;
       }
+
+      console.log('🔍 VehicleSearchDropdown sending search:', combinedQuery, 'for vehicle compatibility'); // Debug
 
       const result = await ProductService.getProducts(searchParams);
 
@@ -131,8 +140,13 @@ const VehicleSearchDropdown = ({ className = '' }) => {
       if (result.success) {
         setProducts(result.products || []);
         
-        // Don't show suggestions, focus on products
-        setSuggestions([]);
+        // Generate search suggestions based on query
+        if (searchQuery.trim()) {
+          const suggestions = generateSearchSuggestions(searchQuery, result.products || []);
+          setSuggestions(suggestions);
+        } else {
+          setSuggestions([]);
+        }
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
@@ -143,10 +157,143 @@ const VehicleSearchDropdown = ({ className = '' }) => {
     }
   }, [selectedVehicle]);
 
+  // Simplified vehicle parsing - mainly for UI display purposes
+  // The actual vehicle compatibility logic is handled by ProductService.parseSearchQuery
+  const parseVehicleFromQuery = (query) => {
+    const words = query.toLowerCase().trim().split(/\s+/);
+    let year = '';
+    let make = '';
+    let model = '';
+    let hasVehicleInfo = false;
+
+    // Extract year (4-digit number between 1990 and current year + 2)
+    const currentYear = new Date().getFullYear();
+    const yearMatch = words.find(word => {
+      const num = parseInt(word);
+      return num >= 1990 && num <= currentYear + 2;
+    });
+    if (yearMatch) {
+      year = yearMatch;
+      hasVehicleInfo = true;
+    }
+
+    // Common vehicle makes (expanded list)
+    const vehicleMakes = [
+      'toyota', 'honda', 'ford', 'chevrolet', 'chevy', 'nissan', 'bmw', 'mercedes', 'mercedes-benz',
+      'audi', 'volkswagen', 'vw', 'hyundai', 'kia', 'subaru', 'mazda', 'mitsubishi', 'lexus',
+      'acura', 'infiniti', 'cadillac', 'buick', 'gmc', 'jeep', 'chrysler', 'dodge', 'ram',
+      'volvo', 'porsche', 'jaguar', 'land rover', 'mini', 'fiat', 'alfa romeo', 'tesla',
+      'lincoln', 'saab', 'scion', 'isuzu', 'suzuki'
+    ];
+
+    // Extract make
+    const makeMatch = words.find(word => vehicleMakes.includes(word));
+    if (makeMatch) {
+      make = makeMatch === 'chevy' ? 'chevrolet' : 
+            makeMatch === 'vw' ? 'volkswagen' : 
+            makeMatch === 'mercedes' ? 'mercedes-benz' :
+            makeMatch;
+      hasVehicleInfo = true;
+    }
+
+    // DYNAMIC MODEL DETECTION - Extract any remaining word that could be a model
+    const modelCandidates = words.filter(word => {
+      // Skip if it's a known auto part term
+      if (isCommonAutoPartTerm(word)) return false;
+      
+      // Skip very short words (likely not model names)
+      if (word.length < 2) return false;
+      
+      // Skip common words that are not vehicle models
+      const skipWords = ['the', 'and', 'or', 'for', 'with', 'in', 'on', 'at', 'to', 'from', 'by', 'of', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'shall'];
+      if (skipWords.includes(word.toLowerCase())) return false;
+      
+      // Skip numbers that aren't years
+      if (/^\d+$/.test(word) && (parseInt(word) < 1990 || parseInt(word) > currentYear + 2)) return false;
+      
+      // Skip if it's already been identified as year or make
+      if (word === year || word === make) return false;
+      
+      // This could be a model name - allow ANY word (dynamic detection)
+      return true;
+    });
+
+    // Take the first model candidate as the model
+    if (modelCandidates.length > 0) {
+      model = modelCandidates[0];
+      hasVehicleInfo = true;
+    }
+
+    return { year, make, model, hasVehicleInfo };
+  };
+
+  // Check if a word is a common auto part term
+  const isCommonAutoPartTerm = (word) => {
+    const autoPartTerms = [
+      'battery', 'brake', 'brakes', 'pad', 'pads', 'rotor', 'filter', 'oil',
+      'spark', 'plug', 'plugs', 'belt', 'hose', 'pump', 'sensor', 'light',
+      'bulb', 'fuse', 'relay', 'switch', 'tire', 'wheel', 'engine', 'transmission'
+    ];
+    return autoPartTerms.includes(word.toLowerCase());
+  };
+
+  // Generate enhanced search suggestions
+  const generateSearchSuggestions = (query, products) => {
+    const suggestions = [];
+    const parsed = parseVehicleFromQuery(query);
+    
+    // If we detected vehicle info, suggest parts for that vehicle
+    if (parsed.hasVehicleInfo) {
+      const vehicleStr = [parsed.year, parsed.make, parsed.model].filter(Boolean).join(' ');
+      
+      const commonParts = [
+        'brake pads', 'oil filter', 'air filter', 'spark plugs', 'battery',
+        'brake rotors', 'headlight bulbs', 'transmission fluid', 'coolant',
+        'windshield wipers', 'cabin filter', 'fuel filter', 'timing belt'
+      ];
+      
+      commonParts.forEach(part => {
+        if (!query.toLowerCase().includes(part.toLowerCase())) {
+          suggestions.push({
+            type: 'vehicle_part',
+            text: `${vehicleStr} ${part}`,
+            description: `${part} for ${vehicleStr}`
+          });
+        }
+      });
+    }
+    
+    // Add product-based suggestions from search results
+    if (products.length > 0) {
+      const uniqueCategories = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
+      uniqueCategories.slice(0, 3).forEach(category => {
+        suggestions.push({
+          type: 'category',
+          text: `${query} in ${category}`,
+          description: `Search ${category} category`
+        });
+      });
+    }
+    
+    return suggestions.slice(0, 6);
+  };
+
   // Handle input change
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
+
+    // Open dropdown when user starts typing
+    if (value.trim() && !isOpen) {
+      setIsOpen(true);
+    }
+
+    // Close dropdown if query is cleared
+    if (!value.trim() && isOpen) {
+      setIsOpen(false);
+      setProducts([]);
+      setSuggestions([]);
+    }
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -185,13 +332,30 @@ const VehicleSearchDropdown = ({ className = '' }) => {
     }
   };
 
+  // Force close dropdown and clear all state
+  const forceCloseDropdown = () => {
+    setIsOpen(false);
+    setProducts([]);
+    setSuggestions([]);
+    setShowVehicleSelector(false);
+    setLoading(false);
+
+    // Cancel any pending requests
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
   // Handle search submission
   const handleSearch = (searchQuery = query) => {
     if (!searchQuery.trim() && !selectedVehicle) return;
 
     // Add to history
     addToSearchHistory(searchQuery);
-    
+
     // Build search URL with vehicle filter
     const params = new URLSearchParams();
     if (searchQuery.trim()) {
@@ -202,12 +366,11 @@ const VehicleSearchDropdown = ({ className = '' }) => {
       params.set('make', selectedVehicle.make);
       params.set('model', selectedVehicle.model);
     }
-    
+
     // Navigate to search results page
     navigate(`/search?${params.toString()}`);
-    
-    // Close dropdown
-    setIsOpen(false);
+
+    // Clear query after navigation
     setQuery('');
   };
 
@@ -220,9 +383,14 @@ const VehicleSearchDropdown = ({ className = '' }) => {
   // Handle product click
   const handleProductClick = (productId) => {
     addToSearchHistory(query);
-    navigate(`/products/${productId}`);
+
+    // Close dropdown immediately
     setIsOpen(false);
+    setProducts([]);
+    setSuggestions([]);
     setQuery('');
+
+    navigate(`/products/${productId}`);
   };
 
   // Search history management
@@ -263,19 +431,36 @@ const VehicleSearchDropdown = ({ className = '' }) => {
     }
   }, [selectedVehicle]);
 
-  // Click outside handler
+  // Click outside and keyboard handler
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setIsOpen(false);
+        setProducts([]);
+        setSuggestions([]);
       }
       if (vehicleRef.current && !vehicleRef.current.contains(event.target)) {
         setShowVehicleSelector(false);
       }
     };
 
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        setProducts([]);
+        setSuggestions([]);
+        setQuery('');
+        setShowVehicleSelector(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
@@ -349,8 +534,37 @@ const VehicleSearchDropdown = ({ className = '' }) => {
             placeholder={selectedVehicle ? "Search parts for your vehicle..." : "Search auto parts..."}
             value={query}
             onChange={handleInputChange}
-            onFocus={() => setIsOpen(true)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onClick={() => {
+              // If dropdown is open and there are results, close it
+              if (isOpen && (products.length > 0 || suggestions.length > 0)) {
+                setIsOpen(false);
+                setProducts([]);
+                setSuggestions([]);
+              }
+            }}
+            onFocus={() => {
+              // Only open if there's a query to show results for and dropdown is not already open
+              if (query.trim() && !isOpen) {
+                setIsOpen(true);
+              }
+            }}
+            onBlur={() => {
+              // Delay closing to allow clicks on dropdown items
+              setTimeout(() => {
+                setIsOpen(false);
+                setProducts([]);
+                setSuggestions([]);
+              }, 200);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                setIsOpen(false);
+                setProducts([]);
+                setSuggestions([]);
+                handleSearch();
+              }
+            }}
             className="w-full px-4 py-2 text-sm focus:outline-none"
           />
           
@@ -358,6 +572,7 @@ const VehicleSearchDropdown = ({ className = '' }) => {
             <button
               onClick={() => {
                 setQuery('');
+                setIsOpen(false);
                 setProducts([]);
                 setSuggestions([]);
               }}
@@ -370,7 +585,18 @@ const VehicleSearchDropdown = ({ className = '' }) => {
 
         {/* Search Button */}
         <button
-          onClick={() => handleSearch()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Close dropdown immediately
+            setIsOpen(false);
+            setProducts([]);
+            setSuggestions([]);
+
+            // Handle search
+            handleSearch();
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors"
         >
           <FiSearch className="w-4 h-4" />
@@ -379,7 +605,7 @@ const VehicleSearchDropdown = ({ className = '' }) => {
 
       {/* Search Results Dropdown */}
       <AnimatePresence>
-        {isOpen && (query.trim() || selectedVehicle) && (
+        {isOpen && query.trim() && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -420,6 +646,43 @@ const VehicleSearchDropdown = ({ className = '' }) => {
                           <div className="text-xs text-gray-500">
                             ${product.price || product.discount_price || 0}
                           </div>
+                        </div>
+                        <FiArrowRight className="w-4 h-4 text-gray-400 ml-2" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search Suggestions */}
+                {suggestions.length > 0 && (
+                  <div className="p-2 border-t border-gray-100">
+                    <div className="text-xs font-medium text-gray-500 mb-2 px-2">
+                      Suggested Searches
+                    </div>
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion.text || suggestion)}
+                        className="w-full px-2 py-2 text-left hover:bg-gray-50 rounded flex items-center"
+                      >
+                        <div className="w-8 h-8 mr-3 flex-shrink-0 flex items-center justify-center">
+                          {suggestion.type === 'vehicle_part' ? (
+                            <FiTruck className="w-4 h-4 text-blue-500" />
+                          ) : suggestion.type === 'category' ? (
+                            <FiSearch className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <FiTrendingUp className="w-4 h-4 text-green-500" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-gray-900 truncate">
+                            {suggestion.text || suggestion}
+                          </div>
+                          {suggestion.description && (
+                            <div className="text-xs text-gray-500 truncate">
+                              {suggestion.description}
+                            </div>
+                          )}
                         </div>
                         <FiArrowRight className="w-4 h-4 text-gray-400 ml-2" />
                       </button>
